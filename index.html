@@ -836,7 +836,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 <div class="modal-overlay" id="modal-expense"><div class="modal">
   <div class="modal-handle"></div>
   <div class="modal-title" id="mex-title">지출 추가 💴</div>
-  <div class="fg"><label>날짜</label><input type="text" id="ex-date" placeholder="5월 23일"/></div>
+  <div class="fg"><label>날짜</label><input type="date" id="ex-date"/></div>
   <div class="fg"><label>항목</label><input type="text" id="ex-name" placeholder="난바 Loft 쇼핑"/></div>
   <div class="fg-row">
     <div class="fg"><label>금액</label><input type="number" id="ex-amount" placeholder="0" inputmode="decimal"/></div>
@@ -1038,7 +1038,19 @@ function load(){
   }
 }
 
+
+function normalizeExistingExpenseDates(){
+  if(!DB || !DB.expenses) return;
+  DB.expenses.forEach(e=>{
+    if(!e.dateKey){
+      e.dateKey = normalizeExpenseDate(e);
+      e.date = e.date || formatExpenseDate(e.dateKey);
+    }
+  });
+}
+
 function renderAfterCloudSync(){
+  normalizeExistingExpenseDates();
   document.documentElement.setAttribute('data-theme',DB.settings.darkMode?'dark':'light');
   if(typeof renderHome==='function') renderHome();
   if(typeof renderTrips==='function') renderTrips();
@@ -1985,7 +1997,9 @@ window.saveExpense=function(){
     cat:document.getElementById('ex-cat').value,
     note:document.getElementById('ex-note').value.trim()};
   if(editId){const e=DB.expenses.find(x=>x.id===editId);Object.assign(e,data);}
-  else DB.expenses.push({id:uid(),...data});
+  else DB.expenses.push({id:uid(),
+    dateKey:dateKey,
+    date:formatExpenseDate(dateKey),...data});
   save();closeModal('modal-expense');
   if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}
   else renderGlobalExpenses();
