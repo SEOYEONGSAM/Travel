@@ -857,13 +857,27 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
       <select id="ex-payer">
         <option value="me" id="ex-opt-me">서영</option>
         <option value="partner" id="ex-opt-partner">성민</option>
-        <option value="split">반반</option>
       </select>
     </div>
+    <div class="fg"><label>실제 부담</label>
+      <select id="ex-share">
+        <option value="split">반반</option>
+        <option value="me" id="ex-share-me">서영 부담</option>
+        <option value="partner" id="ex-share-partner">성민 부담</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg-row">
     <div class="fg"><label>결제 방법</label>
       <select id="ex-method">
         <option value="card">💳 카드</option>
         <option value="cash">💵 현금</option>
+      </select>
+    </div>
+    <div class="fg"><label>정산 상태</label>
+      <select id="ex-settled">
+        <option value="false">🟡 미정산</option>
+        <option value="true">✅ 정산 완료</option>
       </select>
     </div>
   </div>
@@ -1766,28 +1780,54 @@ function renderCatSelect(){
   s.innerHTML=DB.categories.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
 }
 
+function expenseShareLabel(e){
+  const n1=DB.settings.name1,n2=DB.settings.name2;
+  const share=e.shareType || (e.payer==='split'?'split':'split');
+  if(share==='me')return `${n1} 부담`;
+  if(share==='partner')return `${n2} 부담`;
+  return '반반';
+}
+function expensePayerLabel(e){
+  const n1=DB.settings.name1,n2=DB.settings.name2;
+  if(e.payer==='partner')return n2;
+  if(e.payer==='split')return '반반';
+  return n1;
+}
+function calcExpenseOwe(e){
+  // +면 partner가 me에게 줘야 함, -면 me가 partner에게 줘야 함
+  const amt=Number(e.amount)||0;
+  const payer=e.payer==='partner'?'partner':'me';
+  const share=e.shareType || (e.payer==='split'?'split':'split');
+  let meShare=0, partnerShare=0;
+  if(share==='me'){meShare=amt;partnerShare=0;}
+  else if(share==='partner'){meShare=0;partnerShare=amt;}
+  else {meShare=amt/2;partnerShare=amt/2;}
+  if(payer==='me') return partnerShare;
+  return -meShare;
+}
 function expSummaryHTML(exps){
-  const byPerson={me:0,partner:0,split:0};
+  const byPerson={me:0,partner:0};
   const byCur={};
   exps.forEach(e=>{
-    byPerson[e.payer]+=toK(e.amount,e.currency);
-    if(!byCur[e.currency])byCur[e.currency]={me:0,partner:0,split:0,total:0};
-    byCur[e.currency][e.payer]+=e.amount;
-    byCur[e.currency].total+=e.amount;
+    const payer=e.payer==='partner'?'partner':'me';
+    byPerson[payer]+=toK(e.amount,e.currency);
+    if(!byCur[e.currency])byCur[e.currency]={mePaid:0,partnerPaid:0,owe:0,unsettledOwe:0,total:0};
+    if(payer==='me')byCur[e.currency].mePaid+=Number(e.amount)||0;
+    else byCur[e.currency].partnerPaid+=Number(e.amount)||0;
+    const owe=calcExpenseOwe(e);
+    byCur[e.currency].owe+=owe;
+    if(!e.settled)byCur[e.currency].unsettledOwe+=owe;
+    byCur[e.currency].total+=Number(e.amount)||0;
   });
   const totalK=Object.values(byPerson).reduce((a,b)=>a+b,0);
-  const totalA=exps.reduce((s,e)=>s+toA(e.amount,e.currency),0).toFixed(2);
 
-  // Settlement per currency
   let settleRows='';
   Object.entries(byCur).forEach(([cur,v])=>{
-    const meSpent=v.me+v.split/2;
-    const partnerSpent=v.partner+v.split/2;
-    const diff=meSpent-partnerSpent;
+    const diff=v.unsettledOwe;
     const n1=DB.settings.name1,n2=DB.settings.name2;
-    const txt=diff>0?`${n2}이 ${n1}에게 ${Math.abs(diff).toFixed(0)} ${cur} 줘야 해요`:
-               diff<0?`${n1}이 ${n2}에게 ${Math.abs(diff).toFixed(0)} ${cur} 줘야 해요`:
-               '정산 완료 ✅';
+    const txt=diff>0?`${n2} → ${n1} ${Math.abs(diff).toFixed(0)} ${cur}`:
+              diff<0?`${n1} → ${n2} ${Math.abs(diff).toFixed(0)} ${cur}`:
+              '미정산 없음 ✅';
     settleRows+=`<div class="settle-row">
       <span class="settle-person">${cur}</span>
       <span class="settle-amount" style="color:${Math.abs(diff)>0?'var(--rose)':'#3a7a3a'}">${txt}</span>
@@ -1800,12 +1840,13 @@ function expSummaryHTML(exps){
 
   return`<div class="exp-summary">
     <div class="exp-sum-box"><div class="exp-sum-amt">₩${totalK.toLocaleString()}</div><div class="exp-sum-lbl">원화 환산</div></div>
-    <div class="exp-sum-box"><div class="exp-sum-amt" style="font-size:15px">${DB.settings.name1}</div><div class="exp-sum-lbl">₩${byPerson.me.toLocaleString()}</div></div>
-    <div class="exp-sum-box"><div class="exp-sum-amt" style="font-size:15px">${DB.settings.name2}</div><div class="exp-sum-lbl">₩${byPerson.partner.toLocaleString()}</div></div>
+    <div class="exp-sum-box"><div class="exp-sum-amt" style="font-size:15px">${DB.settings.name1}</div><div class="exp-sum-lbl">결제 ₩${byPerson.me.toLocaleString()}</div></div>
+    <div class="exp-sum-box"><div class="exp-sum-amt" style="font-size:15px">${DB.settings.name2}</div><div class="exp-sum-lbl">결제 ₩${byPerson.partner.toLocaleString()}</div></div>
   </div>
   <div class="settlement-card">
-    <div class="settle-title">💰 정산 결과</div>
+    <div class="settle-title">💸 미정산 정리</div>
     ${settleRows||'<div style="font-size:13px;color:var(--muted)">지출 내역이 없어요</div>'}
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px">정산 완료로 체크한 항목은 미정산 금액에서 제외돼요.</div>
   </div>
   ${ce.length?`<div class="chart-wrap">
     <div class="chart-title">📊 카테고리별</div>
@@ -1820,22 +1861,23 @@ function expTableHTML(exps){
   if(!exps.length)return`<div class="empty"><div class="empty-icon">💴</div><p>지출 내역이 없어요!</p></div>`;
   const total=exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
   return`<div class="exp-table-wrap">
-    <div class="exp-table-head">
-      <div class="eth">날짜</div><div class="eth">항목</div><div class="eth">누가</div>
-      <div class="eth">금액</div><div class="eth">₩</div><div class="eth"></div>
+    <div class="exp-table-head" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px">
+      <div class="eth">날짜</div><div class="eth">항목</div><div class="eth">결제</div>
+      <div class="eth">부담</div><div class="eth">금액</div><div class="eth">상태</div><div class="eth"></div>
     </div>
-    ${exps.map(e=>`<div class="exp-table-row">
+    ${exps.map(e=>`<div class="exp-table-row" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px">
       <div class="etd-muted">${e.dateLabel||'-'}</div>
       <div><div class="etd">${e.name}</div>${e.note?`<div class="etd-muted">${e.note}</div>`:''}<span class="pay-badge ${e.method==='card'?'pay-card':'pay-cash'}">${e.method==='card'?'💳':'💵'}</span></div>
-      <div><span class="person-badge ${e.payer==='partner'?'pb-partner':e.payer==='split'?'':'pb-me'}">${e.payer==='me'?DB.settings.name1:e.payer==='partner'?DB.settings.name2:'반반'}</span></div>
-      <div class="etd">${e.currency} ${e.amount.toLocaleString()}</div>
-      <div class="etd-muted">₩${toK(e.amount,e.currency).toLocaleString()}</div>
+      <div><span class="person-badge ${e.payer==='partner'?'pb-partner':'pb-me'}">${expensePayerLabel(e)}</span></div>
+      <div class="etd-muted">${expenseShareLabel(e)}</div>
+      <div><div class="etd">${e.currency} ${Number(e.amount).toLocaleString()}</div><div class="etd-muted">₩${toK(e.amount,e.currency).toLocaleString()}</div></div>
+      <div><button class="btn ${e.settled?'btn-subtle':'btn-ghost'} btn-sm" style="padding:4px 8px;font-size:10px" onclick="toggleExpenseSettled('${e.id}')">${e.settled?'✅ 완료':'🟡 미정산'}</button></div>
       <div style="display:flex;gap:3px">
         <button class="icon-btn" style="width:24px;height:24px;font-size:11px" onclick="editExpense('${e.id}')">✏️</button>
         <button class="icon-btn icon-btn-del" style="width:24px;height:24px;font-size:11px" onclick="deleteExpense('${e.id}')">🗑️</button>
       </div>
     </div>`).join('')}
-    <div class="exp-total-row"><div class="etd">합계</div><div></div><div></div><div class="etd">—</div><div class="etd">₩${total.toLocaleString()}</div><div></div></div>
+    <div class="exp-total-row" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px"><div class="etd">합계</div><div></div><div></div><div></div><div class="etd">₩${total.toLocaleString()}</div><div></div><div></div></div>
   </div>`;
 }
 
@@ -1897,10 +1939,14 @@ window.openExpenseModal=function(tripId){
   document.getElementById('mex-title').textContent='지출 추가 💴';
   document.getElementById('ex-opt-me').textContent=DB.settings.name1;
   document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
+  document.getElementById('ex-share-me').textContent=DB.settings.name1+' 부담';
+  document.getElementById('ex-share-partner').textContent=DB.settings.name2+' 부담';
   ['ex-name','ex-note','ex-date'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('ex-amount').value='';
   document.getElementById('ex-currency').value='AED';
   document.getElementById('ex-payer').value='me';
+  document.getElementById('ex-share').value='split';
+  document.getElementById('ex-settled').value='false';
   document.getElementById('ex-method').value='card';
   if(tripId)document.getElementById('ex-name')._tripId=tripId;
   openModal('modal-expense');
@@ -1911,11 +1957,15 @@ window.editExpense=function(id){
   document.getElementById('mex-title').textContent='지출 수정 ✏️';
   document.getElementById('ex-opt-me').textContent=DB.settings.name1;
   document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
+  document.getElementById('ex-share-me').textContent=DB.settings.name1+' 부담';
+  document.getElementById('ex-share-partner').textContent=DB.settings.name2+' 부담';
   document.getElementById('ex-date').value=e.dateLabel||'';
   document.getElementById('ex-name').value=e.name;
   document.getElementById('ex-amount').value=e.amount;
   document.getElementById('ex-currency').value=e.currency;
-  document.getElementById('ex-payer').value=e.payer;
+  document.getElementById('ex-payer').value=e.payer==='partner'?'partner':'me';
+  document.getElementById('ex-share').value=e.shareType || (e.payer==='split'?'split':'split');
+  document.getElementById('ex-settled').value=e.settled?'true':'false';
   document.getElementById('ex-method').value=e.method||'card';
   document.getElementById('ex-cat').value=e.cat;
   document.getElementById('ex-note').value=e.note||'';
@@ -1929,6 +1979,8 @@ window.saveExpense=function(){
     amount:parseFloat(document.getElementById('ex-amount').value)||0,
     currency:document.getElementById('ex-currency').value,
     payer:document.getElementById('ex-payer').value,
+    shareType:document.getElementById('ex-share').value,
+    settled:document.getElementById('ex-settled').value==='true',
     method:document.getElementById('ex-method').value,
     cat:document.getElementById('ex-cat').value,
     note:document.getElementById('ex-note').value.trim()};
@@ -1937,6 +1989,13 @@ window.saveExpense=function(){
   save();closeModal('modal-expense');
   if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}
   else renderGlobalExpenses();
+};
+window.toggleExpenseSettled=function(id){
+  const e=DB.expenses.find(x=>x.id===id);if(!e)return;
+  e.settled=!e.settled;
+  e.settledAt=e.settled?new Date().toISOString():null;
+  save();
+  if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}else renderGlobalExpenses();
 };
 window.deleteExpense=function(id){if(!confirm('삭제?'))return;DB.expenses=DB.expenses.filter(x=>x.id!==id);save();
   if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}else renderGlobalExpenses();};
