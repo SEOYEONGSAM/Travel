@@ -1997,9 +1997,10 @@ window.saveExpense=function(){
     cat:document.getElementById('ex-cat').value,
     note:document.getElementById('ex-note').value.trim()};
   if(editId){const e=DB.expenses.find(x=>x.id===editId);Object.assign(e,data);}
-  else DB.expenses.push({id:uid(),
-    dateKey:dateKey,
-    date:formatExpenseDate(dateKey),...data});
+ else DB.expenses.push({
+  id:uid(),
+  ...data
+});
   save();closeModal('modal-expense');
   if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}
   else renderGlobalExpenses();
