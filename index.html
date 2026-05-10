@@ -222,8 +222,6 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   padding:5px 13px;font-size:12px;font-weight:600;color:var(--muted);
   cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s}
 .dtab.active{background:var(--rose);color:#fff;border-color:var(--rose)}
-.dtab span{line-height:1}
-
 .dtab-add{background:none;border:1.5px dashed var(--pink);border-radius:20px;
   padding:5px 13px;font-size:12px;font-weight:600;color:var(--pink);cursor:pointer;flex-shrink:0}
 
@@ -985,7 +983,6 @@ let DB = {
 };
 
 let CTI = null, editId = null, curDK = null, curSub = 'pretip';
-let editDateKey = null;
 let homeCalY = new Date().getFullYear(), homeCalM = new Date().getMonth();
 let diaryCalY = new Date().getFullYear(), diaryCalM = new Date().getMonth();
 let diaryFilter = 'all';
@@ -1477,14 +1474,8 @@ window.deleteCheck=function(id){
 // ════════════════════════════════════════════
 function dateTabs(trip,fn){
   return`<div class="date-tabs">
-    ${trip.dates.map(d=>`
-      <div class="dtab ${d.key===curDK?'active':''}" style="display:inline-flex;align-items:center;gap:6px">
-        <span onclick="${fn}('${d.key}')" style="cursor:pointer">${d.label}</span>
-        <span onclick="event.stopPropagation();openDateModal('${d.key}')" style="font-size:10px;opacity:.75;cursor:pointer">✏️</span>
-        <span onclick="event.stopPropagation();deleteDate('${d.key}')" style="font-size:10px;opacity:.75;cursor:pointer">🗑️</span>
-      </div>
-    `).join('')}
-    <button class="dtab-add" onclick="openDateModal()">＋</button>
+    ${trip.dates.map(d=>`<button class="dtab ${d.key===curDK?'active':''}" onclick="${fn}('${d.key}')">${d.label}</button>`).join('')}
+    <button class="dtab-add" onclick="openModal('modal-date')">＋</button>
   </div>`;
 }
 
@@ -1566,100 +1557,16 @@ window.dragEnd=function(){
   document.querySelectorAll('.route-item').forEach(e=>e.classList.remove('dragging'));
   dragSrcId=null;
 };
-window.openDateModal=function(key=null){
-  const trip=DB.trips.find(t=>t.id===CTI);
-  editDateKey=key;
-
-  const labelEl=document.getElementById('md-label');
-  const keyEl=document.getElementById('md-key');
-
-  if(key && trip){
-    const d=trip.dates.find(x=>x.key===key);
-    labelEl.value=d?.label||'';
-    keyEl.value=/^\d{4}-\d{2}-\d{2}$/.test(key)?key:'';
-  }else{
-    labelEl.value='';
-    keyEl.value='';
-  }
-
-  openModal('modal-date');
-};
-
+window.openDateModal=function(){document.getElementById('md-label').value='';document.getElementById('md-key').value='';openModal('modal-date');};
 window.saveDate=function(){
   const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-
   const label=document.getElementById('md-label').value.trim();
-  const newKey=document.getElementById('md-key').value||editDateKey||('dk_'+uid());
-
+  const key=document.getElementById('md-key').value||('dk_'+uid());
   if(!label){alert('날짜 이름을 입력해주세요!');return;}
-
-  if(editDateKey){
-    if(newKey!==editDateKey && trip.dates.find(d=>d.key===newKey)){
-      alert('이미 같은 날짜가 있어요.');
-      return;
-    }
-
-    const d=trip.dates.find(x=>x.key===editDateKey);
-    if(d){
-      d.label=label;
-      d.key=newKey;
-    }
-
-    if(newKey!==editDateKey){
-      trip.stops[newKey]=trip.stops[editDateKey]||[];
-      delete trip.stops[editDateKey];
-
-      trip.photos[newKey]=trip.photos[editDateKey]||[];
-      delete trip.photos[editDateKey];
-
-      DB.diary.forEach(x=>{
-        if(x.tripId===trip.id && x.dateKey===editDateKey){
-          x.dateKey=newKey;
-          x.dateLabel=label;
-        }
-      });
-
-      DB.expenses.forEach(x=>{
-        if(x.tripId===trip.id && x.dateKey===editDateKey){
-          x.dateKey=newKey;
-          x.dateLabel=label;
-        }
-      });
-    }
-
-    curDK=newKey;
-  }else{
-    if(!trip.dates.find(d=>d.key===newKey)){
-      trip.dates.push({label,key:newKey});
-    }
-    if(!trip.stops[newKey])trip.stops[newKey]=[];
-    if(!trip.photos[newKey])trip.photos[newKey]=[];
-    curDK=newKey;
-  }
-
-  editDateKey=null;
-  save();
-  closeModal('modal-date');
-  renderTripDetail(trip);
-};
-
-window.deleteDate=function(key){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  const d=trip.dates.find(x=>x.key===key);
-  if(!d)return;
-
-  if(!confirm(`${d.label} 날짜 칸을 삭제할까요?\n해당 날짜의 동선/사진도 함께 삭제됩니다.`))return;
-
-  trip.dates=trip.dates.filter(x=>x.key!==key);
-  delete trip.stops[key];
-  delete trip.photos[key];
-
-  if(curDK===key){
-    curDK=trip.dates[0]?.key||null;
-  }
-
-  save();
-  renderTripDetail(trip);
+  if(!trip.dates.find(d=>d.key===key))trip.dates.push({label,key});
+  if(!trip.stops[key])trip.stops[key]=[];
+  if(!trip.photos[key])trip.photos[key]=[];
+  curDK=key;save();closeModal('modal-date');renderTripDetail(trip);
 };
 
 window.saveBulkRoute=function(){
@@ -2064,7 +1971,7 @@ window.editExpense=function(id){
   document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
   document.getElementById('ex-share-me').textContent=DB.settings.name1+' 부담';
   document.getElementById('ex-share-partner').textContent=DB.settings.name2+' 부담';
-  document.getElementById('ex-date').value=e.dateKey||normalizeExpenseDate(e);
+  document.getElementById('ex-date').value=e.dateLabel||'';
   document.getElementById('ex-name').value=e.name;
   document.getElementById('ex-amount').value=e.amount;
   document.getElementById('ex-currency').value=e.currency;
@@ -2077,15 +1984,9 @@ window.editExpense=function(id){
   openModal('modal-expense');
 };
 window.saveExpense=function(){
-  const rawDate=document.getElementById('ex-date').value||todayISO();
-  const dateKey=/^\d{4}-\d{2}-\d{2}$/.test(rawDate)?rawDate:normalizeExpenseDate({date:rawDate,dateLabel:rawDate});
-  const dateLabel=formatExpenseDate(dateKey);
+  const dl=document.getElementById('ex-date').value.trim();
   const tripId=editId?DB.expenses.find(x=>x.id===editId)?.tripId:(document.getElementById('ex-name')._tripId||CTI||null);
-
-  const data={
-    dateLabel,
-    dateKey,
-    tripId,
+  const data={dateLabel:dl,dateKey:dl.replace(/[^0-9]/g,'-')||uid(),tripId,
     name:document.getElementById('ex-name').value.trim()||'지출',
     amount:parseFloat(document.getElementById('ex-amount').value)||0,
     currency:document.getElementById('ex-currency').value,
@@ -2094,27 +1995,16 @@ window.saveExpense=function(){
     settled:document.getElementById('ex-settled').value==='true',
     method:document.getElementById('ex-method').value,
     cat:document.getElementById('ex-cat').value,
-    note:document.getElementById('ex-note').value.trim()
-  };
-
-  if(editId){
-    const e=DB.expenses.find(x=>x.id===editId);
-    if(e)Object.assign(e,data);
-  }else{
-    DB.expenses.push({id:uid(),...data});
-  }
-
-  save();
-  closeModal('modal-expense');
-
-  if(curSub==='expenses'&&CTI){
-    const t=DB.trips.find(x=>x.id===CTI);
-    if(t)renderTripExpenses(t);
-  }else{
-    renderGlobalExpenses();
-  }
+    note:document.getElementById('ex-note').value.trim()};
+  if(editId){const e=DB.expenses.find(x=>x.id===editId);Object.assign(e,data);}
+  else DB.expenses.push({id:uid(),
+    dateKey:dateKey,
+    date:formatExpenseDate(dateKey),...data});
+  save();closeModal('modal-expense');
+  if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}
+  else renderGlobalExpenses();
 };
-window.toggleExpenseSettledwindow.toggleExpenseSettled=function(id){
+window.toggleExpenseSettled=function(id){
   const e=DB.expenses.find(x=>x.id===id);if(!e)return;
   e.settled=!e.settled;
   e.settledAt=e.settled?new Date().toISOString():null;
