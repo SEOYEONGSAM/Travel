@@ -983,6 +983,7 @@ let DB = {
 };
 
 let CTI = null, editId = null, curDK = null, curSub = 'pretip';
+let editDateTabKey = null;
 let homeCalY = new Date().getFullYear(), homeCalM = new Date().getMonth();
 let diaryCalY = new Date().getFullYear(), diaryCalM = new Date().getMonth();
 let diaryFilter = 'all';
@@ -1474,8 +1475,14 @@ window.deleteCheck=function(id){
 // ════════════════════════════════════════════
 function dateTabs(trip,fn){
   return`<div class="date-tabs">
-    ${trip.dates.map(d=>`<button class="dtab ${d.key===curDK?'active':''}" onclick="${fn}('${d.key}')">${d.label}</button>`).join('')}
-    <button class="dtab-add" onclick="openModal('modal-date')">＋</button>
+    ${trip.dates.map(d=>`
+      <div style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0">
+        <button class="dtab ${d.key===curDK?'active':''}" onclick="${fn}('${d.key}')">${d.label}</button>
+        <button class="icon-btn" title="날짜 수정" style="width:22px;height:22px;font-size:10px" onclick="editDateTab('${d.key}')">✏️</button>
+        <button class="icon-btn icon-btn-del" title="날짜 삭제" style="width:22px;height:22px;font-size:10px" onclick="deleteDateTab('${d.key}')">🗑️</button>
+      </div>
+    `).join('')}
+    <button class="dtab-add" onclick="openDateModal()">＋</button>
   </div>`;
 }
 
@@ -1557,17 +1564,113 @@ window.dragEnd=function(){
   document.querySelectorAll('.route-item').forEach(e=>e.classList.remove('dragging'));
   dragSrcId=null;
 };
-window.openDateModal=function(){document.getElementById('md-label').value='';document.getElementById('md-key').value='';openModal('modal-date');};
+window.openDateModal=function(key=null){
+  const trip=DB.trips.find(t=>t.id===CTI);
+  editDateTabKey=key;
+
+  const labelEl=document.getElementById('md-label');
+  const keyEl=document.getElementById('md-key');
+  const titleEl=document.querySelector('#modal-date .modal-title');
+  const saveBtn=document.querySelector('#modal-date .btn-primary');
+
+  if(key && trip){
+    const d=trip.dates.find(x=>x.key===key);
+    labelEl.value=d?.label||'';
+    keyEl.value=/^\d{4}-\d{2}-\d{2}$/.test(key)?key:'';
+    if(titleEl)titleEl.textContent='날짜 수정 📅';
+    if(saveBtn)saveBtn.textContent='수정 💕';
+  }else{
+    labelEl.value='';
+    keyEl.value='';
+    if(titleEl)titleEl.textContent='날짜 추가 📅';
+    if(saveBtn)saveBtn.textContent='추가 💕';
+  }
+
+  openModal('modal-date');
+};
 window.saveDate=function(){
   const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
   const label=document.getElementById('md-label').value.trim();
-  const key=document.getElementById('md-key').value||('dk_'+uid());
+  const newKey=document.getElementById('md-key').value||editDateTabKey||('dk_'+uid());
+
   if(!label){alert('날짜 이름을 입력해주세요!');return;}
-  if(!trip.dates.find(d=>d.key===key))trip.dates.push({label,key});
-  if(!trip.stops[key])trip.stops[key]=[];
-  if(!trip.photos[key])trip.photos[key]=[];
-  curDK=key;save();closeModal('modal-date');renderTripDetail(trip);
+
+  if(editDateTabKey){
+    if(newKey!==editDateTabKey && trip.dates.find(d=>d.key===newKey)){
+      alert('이미 같은 날짜가 있어요.');
+      return;
+    }
+
+    const d=trip.dates.find(x=>x.key===editDateTabKey);
+    if(d){
+      d.label=label;
+      d.key=newKey;
+    }
+
+    if(newKey!==editDateTabKey){
+      trip.stops[newKey]=trip.stops[editDateTabKey]||[];
+      delete trip.stops[editDateTabKey];
+
+      if(trip.photos){
+        trip.photos[newKey]=trip.photos[editDateTabKey]||[];
+        delete trip.photos[editDateTabKey];
+      }
+
+      DB.diary.forEach(x=>{
+        if(x.tripId===trip.id && x.dateKey===editDateTabKey){
+          x.dateKey=newKey;
+          x.dateLabel=label;
+        }
+      });
+
+      DB.expenses.forEach(x=>{
+        if(x.tripId===trip.id && x.dateKey===editDateTabKey){
+          x.dateKey=newKey;
+          x.dateLabel=label;
+        }
+      });
+    }
+
+    curDK=newKey;
+    editDateTabKey=null;
+  }else{
+    if(!trip.dates.find(d=>d.key===newKey))trip.dates.push({label,key:newKey});
+    if(!trip.stops[newKey])trip.stops[newKey]=[];
+    if(!trip.photos)trip.photos={};
+    if(!trip.photos[newKey])trip.photos[newKey]=[];
+    curDK=newKey;
+  }
+
+  save();
+  closeModal('modal-date');
+  renderTripDetail(trip);
 };
+
+
+window.editDateTab=function(key){
+  openDateModal(key);
+};
+
+window.deleteDateTab=function(key){
+  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
+  const d=trip.dates.find(x=>x.key===key);
+  if(!d)return;
+
+  const ok=confirm(`${d.label} 날짜 탭을 삭제할까요?\n이 날짜의 동선과 사진도 함께 삭제됩니다.`);
+  if(!ok)return;
+
+  trip.dates=trip.dates.filter(x=>x.key!==key);
+  delete trip.stops[key];
+  if(trip.photos)delete trip.photos[key];
+
+  if(curDK===key){
+    curDK=trip.dates[0]?.key||null;
+  }
+
+  save();
+  renderTripDetail(trip);
+};
+
 
 window.saveBulkRoute=function(){
   const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
@@ -2206,7 +2309,7 @@ window.selEP=function(btn,cid){document.querySelectorAll('#'+cid+' .ep-btn').for
 // MODAL UTILS
 // ════════════════════════════════════════════
 function openModal(id){document.getElementById(id).classList.add('open');}
-window.closeModal=function(id){document.getElementById(id).classList.remove('open');};
+window.closeModal=function(id){if(id==='modal-date')editDateTabKey=null;document.getElementById(id).classList.remove('open');};
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
 // Swipe down to close
 document.querySelectorAll('.modal').forEach(m=>{
