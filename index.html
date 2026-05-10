@@ -928,7 +928,26 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 </div></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
+// ════════════════════════════════════════════
+// FIREBASE SYNC CONFIG
+// 1) Firebase Console에서 Web app을 만든 뒤 아래 firebaseConfig 값을 교체하세요.
+// 2) Firestore Database를 만들고 Rules를 test mode 또는 허용 규칙으로 설정하세요.
+// 3) 값이 PASTE_... 상태면 기존처럼 localStorage만 사용합니다.
+// ════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyCdpjw9aa2rgZVtkfgbn6NBNSI_NwU4StQ",
+  authDomain: "our--trip.firebaseapp.com",
+  projectId: "our--trip",
+  storageBucket: "our--trip.firebasestorage.app",
+  messagingSenderId: "854233693888",
+  appId: "1:854233693888:web:d2d16dc4520f89440fb725"
+};
+const COUPLE_ROOM_ID = "seoyeong-sungmin-travel";
+
 // ════════════════════════════════════════════
 // STATE & CONSTANTS
 // ════════════════════════════════════════════
@@ -969,10 +988,96 @@ const toA=(a,c)=>+(a*(R2A[c]||1)).toFixed(2);
 // ════════════════════════════════════════════
 // PERSIST
 // ════════════════════════════════════════════
-function save(){try{localStorage.setItem('tb5',JSON.stringify(DB));}catch(e){alert('저장 공간 부족! 백업 후 데이터를 정리해주세요.');}}
+let cloudDb = null;
+let cloudRoomRef = null;
+let cloudReady = false;
+let cloudApplyingRemote = false;
+let cloudSaveTimer = null;
+
+function isFirebaseConfigured(){
+  return firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('PASTE_') &&
+         firebaseConfig.projectId && !String(firebaseConfig.projectId).startsWith('PASTE_');
+}
+
+function saveLocalOnly(){
+  try{localStorage.setItem('tb5',JSON.stringify(DB));}
+  catch(e){alert('저장 공간 부족! 백업 후 데이터를 정리해주세요.');}
+}
+
+function save(){
+  saveLocalOnly();
+  if(!cloudApplyingRemote) scheduleCloudSave();
+}
+
 function load(){
-  try{const d=localStorage.getItem('tb5');if(d)DB=JSON.parse(d);else seed();}
-  catch(e){seed();}
+  try{
+    const d=localStorage.getItem('tb5');
+    if(d) DB=JSON.parse(d);
+    else seed();
+  }catch(e){seed();}
+}
+
+function renderAfterCloudSync(){
+  document.documentElement.setAttribute('data-theme',DB.settings.darkMode?'dark':'light');
+  if(typeof renderHome==='function') renderHome();
+  if(typeof renderTrips==='function') renderTrips();
+  if(typeof renderCatSelect==='function') renderCatSelect();
+  if(typeof renderGlobalDiary==='function') renderGlobalDiary(diaryFilter);
+  if(typeof renderGlobalExpenses==='function') renderGlobalExpenses();
+  if(typeof loadSettings==='function') loadSettings();
+  if(CTI && typeof renderTripDetail==='function'){
+    const trip=DB.trips.find(t=>t.id===CTI);
+    if(trip) renderTripDetail(trip);
+  }
+}
+
+function initCloudSync(){
+  if(!isFirebaseConfigured()){
+    console.log('Firebase config가 아직 비어 있어 localStorage 모드로 실행합니다.');
+    return;
+  }
+  if(!window.firebase){
+    console.warn('Firebase script를 불러오지 못했습니다. localStorage 모드로 실행합니다.');
+    return;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    cloudDb = firebase.firestore();
+    cloudRoomRef = cloudDb.collection('rooms').doc(COUPLE_ROOM_ID);
+    cloudReady = true;
+
+    cloudRoomRef.onSnapshot(async (snap)=>{
+      if(snap.exists){
+        const data=snap.data();
+        if(data && data.DB){
+          cloudApplyingRemote=true;
+          DB=data.DB;
+          saveLocalOnly();
+          cloudApplyingRemote=false;
+          renderAfterCloudSync();
+        }
+      }else{
+        await cloudRoomRef.set({DB,updatedAt:Date.now(),updatedBy:'first-device'});
+      }
+    },err=>{
+      console.warn('Firebase 동기화 오류:',err);
+      alert('Firebase 동기화 오류가 있어요. Firestore Rules 또는 firebaseConfig를 확인해주세요.');
+    });
+  }catch(e){
+    console.warn('Firebase 시작 실패:',e);
+  }
+}
+
+function scheduleCloudSave(){
+  if(!cloudReady || !cloudRoomRef) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(()=>{
+    cloudRoomRef.set({DB,updatedAt:Date.now(),updatedBy:navigator.userAgent},{merge:true})
+      .catch(err=>{
+        console.warn('Firebase 저장 실패:',err);
+        alert('Firebase 저장 실패. 인터넷 연결 또는 Firestore Rules를 확인해주세요.');
+      });
+  },300);
 }
 function seed(){
   DB.trips=[
@@ -2038,6 +2143,7 @@ renderTrips();
 renderCatSelect();
 renderEP('ep-trip','🗾');
 renderEP('ep-cat','📝',CAT_EMOJIS);
+initCloudSync();
 // Install banner for iOS
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone=window.navigator.standalone===true;
