@@ -1378,6 +1378,8 @@ function renderRoute(trip){
           </div>
           <div class="route-body">${b}
             <div class="flex-row mt-8">
+            <button class="btn btn-subtle btn-sm" onclick="event.stopPropagation();moveStop('${s.id}','up')">↑</button>
+<button class="btn btn-subtle btn-sm" onclick="event.stopPropagation();moveStop('${s.id}','down')">↓</button>
               <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editStop('${s.id}')">✏️ 수정</button>
               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteStop('${s.id}')">🗑️</button>
             </div>
