@@ -1011,11 +1011,14 @@ function save(){
 
 function load(){
   try{
-    const d=localStorage.getItem('tb5');
-    if(d) DB=JSON.parse(d);
-    else seed();
-  }catch(e){seed();}
-}
+    const d = localStorage.getItem('tb5');
+    if(d && !window.firebaseLoaded){
+      DB = JSON.parse(d);
+    }
+  }catch(e){
+    console.warn('localStorage load failed', e);
+  }
+
 
 function renderAfterCloudSync(){
   document.documentElement.setAttribute('data-theme',DB.settings.darkMode?'dark':'light');
