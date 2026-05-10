@@ -6,898 +6,1061 @@
 <title>Our Travel Book 💕</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet"/>
 <style>
-/* =============================================
-   ✏️  수정 가이드
-   - 커플 이름: "My Love & Me" 검색해서 바꾸기
-   - 여행 날짜: "2025년 봄" 검색해서 바꾸기
-   - 사진: photo-slot 안에 <img src="파일명.jpg"/> 추가
-   ============================================= */
 :root {
-  --rose:    #e8728a;
-  --pink:    #f4a7b9;
-  --blush:   #fce4ec;
-  --cream:   #fff8f2;
-  --warm:    #fdeee4;
-  --peach:   #f9c784;
-  --gold:    #c9954a;
-  --brown:   #7a4f3a;
-  --ink:     #3d2215;
-  --sage:    #b8d4b0;
-  --muted:   #a08878;
-  --white:   #ffffff;
-  --shadow:  rgba(232,114,138,0.15);
+  --rose:#e8728a; --pink:#f4a7b9; --blush:#fce4ec;
+  --cream:#fff8f2; --warm:#fdeee4; --peach:#f9c784;
+  --brown:#7a4f3a; --ink:#3d2215; --muted:#a08878;
+  --sage:#b8d4b0; --lav:#d4c5e8; --white:#fff;
+  --shadow:rgba(232,114,138,0.15);
+  --radius:18px;
 }
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--cream);font-family:'Noto Sans KR',sans-serif;color:var(--ink);min-height:100vh;
+  background-image:radial-gradient(ellipse at 10% 0%,rgba(244,167,185,.10) 0%,transparent 55%),
+  radial-gradient(ellipse at 90% 100%,rgba(249,199,132,.08) 0%,transparent 55%)}
+body::before{content:'';display:block;height:5px;
+  background:repeating-linear-gradient(90deg,var(--rose) 0 18px,var(--pink) 18px 36px,var(--peach) 36px 54px,var(--lav) 54px 72px,var(--sage) 72px 90px)}
 
-body {
-  background: var(--cream);
-  font-family: 'Noto Sans KR', sans-serif;
-  color: var(--ink);
-  min-height: 100vh;
-  background-image:
-    radial-gradient(ellipse at 10% 0%, rgba(244,167,185,0.12) 0%, transparent 55%),
-    radial-gradient(ellipse at 90% 100%, rgba(249,199,132,0.10) 0%, transparent 55%);
-}
+/* COVER */
+.cover{text-align:center;padding:48px 20px 28px;position:relative}
+.cover-eyebrow{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--pink);text-transform:uppercase;margin-bottom:12px}
+.cover-title{font-family:'Playfair Display',serif;font-size:clamp(34px,8vw,60px);color:var(--brown);line-height:1.15;margin-bottom:6px}
+.cover-title em{font-style:italic;color:var(--rose)}
+.cover-sub{font-family:'Gaegu',cursive;font-size:18px;color:var(--muted);margin-bottom:18px}
+.cover-names{display:inline-flex;align-items:center;gap:12px;background:white;border:2px solid var(--blush);
+  border-radius:40px;padding:10px 28px;box-shadow:0 4px 20px var(--shadow);font-size:15px;font-weight:700;color:var(--brown)}
+.cover-names .hrt{color:var(--rose);font-size:18px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
 
-/* ── STRIPE TOP ── */
-body::before {
-  content:'';
-  display:block; height:5px;
-  background: repeating-linear-gradient(90deg,
-    var(--rose) 0 18px, var(--pink) 18px 36px,
-    var(--peach) 36px 54px, #d4c5e8 54px 72px,
-    var(--sage) 72px 90px);
-}
+/* NAV */
+nav{position:sticky;top:0;z-index:200;background:rgba(255,248,242,.94);backdrop-filter:blur(12px);
+  border-bottom:1.5px solid var(--blush);display:flex;justify-content:center;flex-wrap:wrap;
+  gap:4px;padding:10px 16px;box-shadow:0 2px 16px var(--shadow)}
+.nb{background:none;border:2px solid transparent;border-radius:30px;padding:7px 18px;
+  font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.nb:hover{color:var(--rose);border-color:var(--blush)}
+.nb.active{background:var(--rose);color:white;border-color:var(--rose);box-shadow:0 3px 12px rgba(232,114,138,.35)}
 
-/* ── COVER ── */
-.cover {
-  text-align: center;
-  padding: 56px 24px 40px;
-  position: relative;
-}
-.cover-deco {
-  font-size: 13px; font-weight: 700; letter-spacing: 3px;
-  color: var(--pink); text-transform: uppercase;
-  margin-bottom: 14px; opacity: 0.9;
-}
-.cover-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(34px, 8vw, 62px);
-  color: var(--brown);
-  line-height: 1.15;
-  margin-bottom: 6px;
-}
-.cover-title em { font-style: italic; color: var(--rose); }
-.cover-sub {
-  font-family: 'Gaegu', cursive;
-  font-size: 20px; color: var(--muted);
-  margin-bottom: 20px;
-}
-/* ✏️ 커플 이름 수정: "My Love & Me" 바꾸기 */
-.cover-names {
-  display: inline-flex; align-items: center; gap: 12px;
-  background: white; border: 2px solid var(--blush);
-  border-radius: 40px; padding: 10px 28px;
-  box-shadow: 0 4px 20px var(--shadow);
-  font-size: 15px; font-weight: 700; color: var(--brown);
-}
-.cover-names .heart { color: var(--rose); font-size: 18px; animation: pulse 2s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
-.cover-date {
-  margin-top: 14px; font-size: 12px;
-  color: var(--muted); letter-spacing: 1px;
-}
+/* PAGES */
+.page{display:none;max-width:760px;margin:0 auto;padding:32px 16px 80px}
+.page.active{display:block;animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── NAV ── */
-nav {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(255,248,242,0.92);
-  backdrop-filter: blur(12px);
-  border-bottom: 1.5px solid var(--blush);
-  display: flex; justify-content: center;
-  flex-wrap: wrap; gap: 4px;
-  padding: 10px 16px;
-  box-shadow: 0 2px 16px var(--shadow);
-}
-.nav-btn {
-  background: none; border: 2px solid transparent;
-  border-radius: 30px; padding: 7px 18px;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 13px; font-weight: 600;
-  color: var(--muted); cursor: pointer;
-  transition: all 0.2s;
-}
-.nav-btn:hover { color: var(--rose); border-color: var(--blush); }
-.nav-btn.active {
-  background: var(--rose); color: white;
-  border-color: var(--rose);
-  box-shadow: 0 3px 12px rgba(232,114,138,0.35);
-}
+/* SECTION TITLE */
+.sec-title{font-family:'Playfair Display',serif;font-size:24px;color:var(--brown);margin-bottom:20px;
+  display:flex;align-items:center;gap:12px}
+.sec-title::after{content:'';flex:1;height:1.5px;background:linear-gradient(90deg,var(--pink),transparent)}
 
-/* ── PAGES ── */
-.page { display: none; max-width: 720px; margin: 0 auto; padding: 36px 16px 80px; }
-.page.active { display: block; animation: fadeUp 0.3s ease both; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+/* CARDS */
+.card{background:white;border-radius:var(--radius);padding:20px 22px;
+  box-shadow:0 4px 24px var(--shadow),0 1px 0 var(--blush);margin-bottom:16px;
+  border:1.5px solid rgba(244,167,185,.2);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 32px var(--shadow)}
 
-/* ── SECTION TITLE ── */
-.sec-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 26px; color: var(--brown);
-  margin-bottom: 24px;
-  display: flex; align-items: center; gap: 12px;
-}
-.sec-title::after {
-  content:''; flex:1; height:1.5px;
-  background: linear-gradient(90deg, var(--pink), transparent);
-  border-radius: 2px;
-}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:30px;
+  padding:9px 20px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--rose);color:white;box-shadow:0 3px 12px rgba(232,114,138,.3)}
+.btn-primary:hover{background:#d45a75;transform:translateY(-1px)}
+.btn-ghost{background:white;color:var(--rose);border:2px solid var(--pink)}
+.btn-ghost:hover{background:var(--blush)}
+.btn-danger{background:#fff0f0;color:#c04040;border:2px solid #f0c0c0}
+.btn-danger:hover{background:#ffe0e0}
+.btn-sm{padding:5px 13px;font-size:12px}
 
-/* ── CARDS ── */
-.card {
-  background: white; border-radius: 20px;
-  padding: 22px 24px;
-  box-shadow: 0 4px 24px var(--shadow), 0 1px 0 var(--blush);
-  margin-bottom: 20px;
-  border: 1.5px solid rgba(244,167,185,0.2);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--shadow); }
+/* TRIP CARDS */
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.trip-card{background:white;border-radius:var(--radius);overflow:hidden;cursor:pointer;
+  box-shadow:0 4px 20px var(--shadow);border:1.5px solid var(--blush);transition:all .2s;position:relative}
+.trip-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px var(--shadow)}
+.trip-card-cover{height:110px;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative}
+.trip-card-body{padding:14px 16px 16px}
+.trip-card-country{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.trip-card-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);margin-bottom:3px}
+.trip-card-date{font-size:11px;color:var(--muted);margin-bottom:10px}
+.trip-card-tags{display:flex;flex-wrap:wrap;gap:5px}
+.tag{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px}
+.tag-pink{background:#fde8ee;color:var(--rose)}
+.tag-sage{background:#e4f0e0;color:#5a8a52}
+.tag-gold{background:#fff3d0;color:#a07020}
+.tag-lav{background:#eee8f8;color:#7060a0}
+.tag-blue{background:#e8f0fe;color:#4060c0}
+.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:8px}
+.status-done{background:#e8f8e8;color:#4a8a4a}
+.status-plan{background:#fff8e0;color:#c09020}
+.status-future{background:#f0e8ff;color:#7060a0}
+.trip-card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .2s}
+.trip-card:hover .trip-card-actions{opacity:1}
+.icon-btn{width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:center;transition:all .2s}
+.icon-btn-edit{background:rgba(255,255,255,.9);color:var(--rose)}
+.icon-btn-del{background:rgba(255,240,240,.9);color:#c04040}
+.add-trip-card{background:white;border:2.5px dashed var(--pink);border-radius:var(--radius);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:220px;cursor:pointer;transition:all .2s;gap:8px;color:var(--pink)}
+.add-trip-card:hover{background:var(--blush);transform:translateY(-2px)}
+.add-trip-card .plus{font-size:36px}
+.add-trip-card span{font-size:13px;font-weight:700}
 
-/* ── TRIP OVERVIEW ── */
-.trip-hero {
-  background: linear-gradient(135deg, var(--blush) 0%, var(--warm) 100%);
-  border-radius: 20px; padding: 28px 24px;
-  margin-bottom: 20px; text-align: center;
-  border: 1.5px solid var(--pink);
-}
-.trip-hero-emoji { font-size: 52px; margin-bottom: 10px; }
-.trip-hero h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 24px; color: var(--brown); margin-bottom: 4px;
-}
-.trip-hero p { font-size: 13px; color: var(--muted); }
-.trip-tags { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; margin-top:14px; }
-.ttag {
-  background: white; border: 1.5px solid var(--pink);
-  border-radius: 20px; padding: 4px 14px;
-  font-size: 12px; font-weight: 700; color: var(--rose);
-}
+/* TRIP DETAIL */
+.trip-detail-header{background:linear-gradient(135deg,var(--blush),var(--warm));
+  border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;
+  border:1.5px solid var(--pink)}
+.tdh-emoji{font-size:48px;margin-bottom:10px}
+.tdh-name{font-family:'Playfair Display',serif;font-size:26px;color:var(--brown);margin-bottom:4px}
+.tdh-meta{font-size:13px;color:var(--muted);margin-bottom:14px}
+.tdh-tags{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.sub-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px}
+.stab{background:white;border:2px solid var(--blush);border-radius:25px;padding:7px 16px;
+  font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.stab:hover{border-color:var(--pink);color:var(--rose)}
+.stab.active{background:var(--rose);color:white;border-color:var(--rose)}
+.sub-page{display:none}
+.sub-page.active{display:block;animation:fadeUp .25s ease both}
 
-/* stats row */
-.stats-row {
-  display: grid; grid-template-columns: repeat(3,1fr);
-  gap: 12px; margin-bottom: 20px;
-}
-.stat-box {
-  background: white; border-radius: 16px;
-  padding: 16px 12px; text-align: center;
-  border: 1.5px solid var(--blush);
-  box-shadow: 0 2px 12px var(--shadow);
-}
-.stat-num {
-  font-family: 'Playfair Display', serif;
-  font-size: 26px; color: var(--rose); font-weight: 700;
-}
-.stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+/* TIMELINE */
+.timeline{position:relative;padding-left:36px}
+.timeline::before{content:'';position:absolute;left:12px;top:4px;bottom:4px;width:2px;
+  background:linear-gradient(to bottom,var(--pink),var(--peach));border-radius:2px}
+.tl-item{position:relative;margin-bottom:10px;background:white;border-radius:14px;
+  padding:13px 15px;border:1.5px solid rgba(244,167,185,.25);
+  box-shadow:0 2px 12px var(--shadow);cursor:pointer;transition:all .2s}
+.tl-item:hover{border-color:var(--pink);transform:translateX(2px)}
+.tl-item.open{border-color:var(--rose)}
+.tl-dot{position:absolute;left:-28px;top:14px;width:22px;height:22px;border-radius:50%;
+  background:var(--rose);color:white;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border:3px solid var(--cream);box-shadow:0 0 0 2px var(--pink)}
+.tl-head{display:flex;align-items:center;gap:8px}
+.tl-icon{font-size:20px;flex-shrink:0}
+.tl-name{font-weight:700;font-size:14px;color:var(--brown);flex:1}
+.tl-chevron{color:var(--pink);font-size:12px;transition:transform .2s;flex-shrink:0}
+.tl-item.open .tl-chevron{transform:rotate(180deg)}
+.tl-body{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--blush)}
+.tl-item.open .tl-body{display:block;animation:fadeUp .2s ease}
+.tl-note{background:var(--blush);border-radius:8px;padding:8px 12px;font-size:12px;color:#7a4050;margin-top:8px;line-height:1.6}
+.transport-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.transport-row hr{flex:1;border:none;border-top:1.5px dashed #f0d0da}
+.transport-pill{background:white;border:1.5px solid var(--blush);border-radius:20px;padding:3px 12px;
+  font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
+.cl{list-style:none;display:flex;flex-direction:column;gap:5px}
+.cl li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#5a3828;line-height:1.4;cursor:pointer}
+.cl li.done{opacity:.4}
+.cl li.done span{text-decoration:line-through}
+.cl li.done .cb{background:var(--rose);border-color:var(--rose)}
+.cb{width:16px;height:16px;border-radius:4px;border:2px solid var(--pink);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;margin-top:2px;font-size:10px;color:white}
+.dg-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;margin-top:10px}
 
-/* ── TIMELINE ── */
-.timeline { position:relative; padding-left:38px; }
-.timeline::before {
-  content:''; position:absolute; left:14px; top:4px; bottom:4px; width:2px;
-  background: linear-gradient(to bottom, var(--pink), var(--peach));
-  border-radius: 2px;
-}
-.tl-item {
-  position: relative; margin-bottom: 12px;
-  background: white; border-radius: 16px;
-  padding: 14px 16px;
-  border: 1.5px solid rgba(244,167,185,0.25);
-  box-shadow: 0 2px 12px var(--shadow);
-  cursor: pointer; transition: all 0.2s;
-}
-.tl-item:hover { border-color: var(--pink); transform: translateX(3px); }
-.tl-item.open { border-color: var(--rose); }
-.tl-dot {
-  position:absolute; left:-30px; top:16px;
-  width:24px; height:24px; border-radius:50%;
-  background: var(--rose); color:white;
-  font-size:11px; font-weight:800;
-  display:flex; align-items:center; justify-content:center;
-  border:3px solid var(--cream);
-  box-shadow: 0 0 0 2px var(--pink);
-}
-.tl-header { display:flex; align-items:center; gap:10px; }
-.tl-icon { font-size:22px; flex-shrink:0; }
-.tl-name { font-weight:700; font-size:14px; color:var(--brown); flex:1; }
-.tl-badge {
-  font-size:10px; font-weight:700; padding:2px 9px;
-  border-radius:20px; flex-shrink:0;
-}
-.tl-chevron { color:var(--pink); font-size:13px; transition:transform 0.2s; flex-shrink:0; }
-.tl-item.open .tl-chevron { transform:rotate(180deg); }
-.tl-detail {
-  display:none; margin-top:12px; padding-top:12px;
-  border-top:1px dashed var(--blush);
-}
-.tl-item.open .tl-detail { display:block; animation:fadeUp 0.2s ease; }
-.detail-group { margin-bottom:10px; }
-.detail-group-title {
-  font-size:11px; font-weight:700; color:var(--muted);
-  text-transform:uppercase; letter-spacing:0.8px; margin-bottom:7px;
-}
-.cl { list-style:none; display:flex; flex-direction:column; gap:5px; }
-.cl li {
-  display:flex; align-items:flex-start; gap:8px;
-  font-size:13px; color:#5a3828; line-height:1.4; cursor:pointer;
-}
-.cl li.done { opacity:0.42; }
-.cl li.done span { text-decoration:line-through; }
-.cl li.done .cb { background:var(--rose); border-color:var(--rose); }
-.cb {
-  width:17px; height:17px; border-radius:4px;
-  border:2px solid var(--pink); flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  transition:all 0.15s; margin-top:1px;
-  font-size:10px; color:white;
-}
-.tip-note {
-  background: var(--blush); border-radius:10px;
-  padding:9px 13px; font-size:12px; color:#7a4050;
-  margin-top:8px; line-height:1.6;
-}
-.transport-row {
-  display:flex; align-items:center; gap:8px; padding:5px 0;
-}
-.transport-row hr { flex:1; border:none; border-top:1.5px dashed #f0d0da; }
-.transport-pill {
-  background:white; border:1.5px solid var(--blush);
-  border-radius:20px; padding:4px 13px;
-  font-size:11px; color:var(--muted); font-weight:600;
-  box-shadow:0 1px 6px var(--shadow);
-}
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.photo-wrap{display:flex;flex-direction:column;gap:4px}
+.photo-slot{aspect-ratio:1;background:var(--warm);border-radius:10px;border:2px dashed #f0c8d0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;overflow:hidden;position:relative;font-size:11px;color:var(--muted);font-weight:600;gap:5px}
+.photo-slot:hover{border-color:var(--rose);background:var(--blush)}
+.photo-slot img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.photo-slot .ps-emoji{font-size:24px}
+.photo-tape{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:36px;height:12px;border-radius:2px}
+.photo-caption{font-size:11px;color:var(--muted);text-align:center;font-style:italic}
+.photo-add-row{display:flex;justify-content:center;margin-top:12px}
 
-/* ── PHOTO ALBUM ── */
-.album-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.photo-slot {
-  aspect-ratio: 1;
-  background: var(--warm);
-  border-radius: 12px;
-  border: 2px dashed #f0c8d0;
-  display: flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  cursor: pointer; transition: all 0.2s;
-  position: relative; overflow:hidden;
-  font-size: 11px; color: var(--muted); font-weight:600; gap:6px;
-}
-.photo-slot:hover { border-color:var(--rose); background:#fde8ee; }
-/* ✏️ 사진 추가법: <img src="사진파일.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:10px;"> */
-.photo-slot .ps-emoji { font-size:26px; }
-.photo-slot .ps-label { font-size:11px; }
-.photo-tape {
-  position:absolute; top:-5px; left:50%; transform:translateX(-50%);
-  width:38px; height:13px; border-radius:2px;
-}
-.photo-caption {
-  text-align:center; font-size:11px; color:var(--muted);
-  margin-top:6px; font-style:italic;
-}
-/* rotate for scrapbook feel */
-.album-grid > div:nth-child(3n+1) .photo-slot { transform:rotate(-1.2deg); }
-.album-grid > div:nth-child(3n+2) .photo-slot { transform:rotate(0.8deg); }
-.album-grid > div:nth-child(3n)   .photo-slot { transform:rotate(-0.5deg); }
-.photo-wrapper { display:flex; flex-direction:column; }
+/* DIARY */
+.diary-entry{background:white;border-radius:var(--radius);padding:22px 24px;margin-bottom:14px;
+  border:1.5px solid var(--blush);box-shadow:0 4px 20px var(--shadow);position:relative}
+.diary-entry::before{content:'"';font-family:'Playfair Display',serif;font-size:72px;color:var(--blush);
+  position:absolute;top:-8px;left:14px;line-height:1;pointer-events:none}
+.diary-date{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.diary-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--brown);margin-bottom:10px}
+.diary-body{font-size:14px;color:#5a3828;line-height:1.9;white-space:pre-wrap}
+.diary-mood{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--blush);
+  border-radius:20px;padding:4px 13px;font-size:12px;color:var(--rose);font-weight:700}
+.diary-actions{display:flex;gap:6px;margin-top:12px;justify-content:flex-end}
 
-/* ── DIARY ── */
-.diary-entry {
-  background: white; border-radius: 20px;
-  padding: 24px 26px; margin-bottom: 18px;
-  border: 1.5px solid var(--blush);
-  box-shadow: 0 4px 20px var(--shadow);
-  position: relative;
-}
-.diary-entry::before {
-  content: '"'; font-family:'Playfair Display',serif;
-  font-size:80px; color:var(--blush);
-  position:absolute; top:-10px; left:16px;
-  line-height:1; pointer-events:none;
-}
-.diary-date {
-  font-size:11px; color:var(--muted); font-weight:700;
-  text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;
-}
-.diary-title {
-  font-family:'Playfair Display',serif;
-  font-size:19px; color:var(--brown); margin-bottom:12px;
-}
-.diary-body {
-  font-size:14px; color:#5a3828; line-height:1.9;
-  white-space: pre-line;
-}
-.diary-mood {
-  display:inline-flex; align-items:center; gap:6px;
-  margin-top:14px; background:var(--blush);
-  border-radius:20px; padding:4px 14px;
-  font-size:12px; color:var(--rose); font-weight:700;
-}
+/* EXPENSES */
+.exp-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.exp-box{background:white;border-radius:14px;padding:14px 12px;text-align:center;
+  border:1.5px solid var(--blush);box-shadow:0 2px 12px var(--shadow)}
+.exp-amount{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--rose)}
+.exp-label{font-size:10px;color:var(--muted);margin-top:2px}
+table.exp-table{width:100%;border-collapse:collapse;background:white;border-radius:14px;overflow:hidden;
+  box-shadow:0 2px 16px var(--shadow)}
+table.exp-table th{background:linear-gradient(135deg,var(--rose),#d45a75);color:white;font-size:12px;font-weight:700;padding:10px 13px;text-align:left}
+table.exp-table td{padding:10px 13px;font-size:13px;color:#5a3828;border-bottom:1px solid var(--blush)}
+table.exp-table tr:last-child td{border:none}
+table.exp-table tr:hover td{background:var(--warm)}
+.exp-cat-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.exp-total-row td{font-weight:800;color:var(--rose);font-size:13px;background:var(--blush)!important}
+.exp-actions{display:flex;gap:4px}
 
-/* ── EXPENSES ── */
-.expense-summary {
-  display: grid; grid-template-columns: repeat(2,1fr); gap:12px;
-  margin-bottom: 20px;
-}
-.exp-box {
-  background: white; border-radius:16px; padding:18px 16px;
-  text-align:center; border:1.5px solid var(--blush);
-  box-shadow:0 2px 12px var(--shadow);
-}
-.exp-amount {
-  font-family:'Playfair Display',serif;
-  font-size:22px; font-weight:700; color:var(--rose);
-}
-.exp-label { font-size:11px; color:var(--muted); margin-top:3px; }
-.expense-table {
-  width:100%; border-collapse:collapse;
-  background:white; border-radius:16px; overflow:hidden;
-  box-shadow:0 2px 16px var(--shadow);
-}
-.expense-table th {
-  background: linear-gradient(135deg, var(--rose), #d45a75);
-  color:white; font-size:12px; font-weight:700;
-  padding:11px 14px; text-align:left;
-}
-.expense-table td {
-  padding:11px 14px; font-size:13px; color:#5a3828;
-  border-bottom:1px solid var(--blush);
-}
-.expense-table tr:last-child td { border:none; }
-.expense-table tr:hover td { background:var(--warm); }
-.exp-cat {
-  display:inline-block; font-size:10px; font-weight:700;
-  padding:2px 9px; border-radius:20px;
-}
-.exp-total-row td {
-  font-weight:800; color:var(--rose); font-size:14px;
-  background: var(--blush) !important;
-}
-.add-btn {
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  width:100%; margin-top:14px;
-  background:white; border:2px dashed var(--pink);
-  border-radius:14px; padding:13px;
-  font-size:13px; color:var(--rose); font-weight:700;
-  cursor:pointer; transition:all 0.2s;
-}
-.add-btn:hover { background:var(--blush); }
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(60,20,10,.45);z-index:1000;
+  align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:white;border-radius:20px;padding:28px 24px;width:100%;max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal h3{font-family:'Playfair Display',serif;font-size:20px;color:var(--brown);margin-bottom:20px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group textarea,.form-group select{
+  width:100%;border:2px solid var(--blush);border-radius:10px;padding:10px 13px;
+  font-family:'Noto Sans KR',sans-serif;font-size:14px;color:var(--ink);background:white;
+  transition:border-color .2s;outline:none}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--rose)}
+.form-group textarea{resize:vertical;min-height:90px;line-height:1.6}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.emoji-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ep-btn{width:36px;height:36px;border:2px solid var(--blush);border-radius:8px;
+  font-size:18px;cursor:pointer;transition:all .2s;background:white}
+.ep-btn:hover,.ep-btn.selected{border-color:var(--rose);background:var(--blush)}
 
-/* ── MEMO ── */
-.memo-card {
-  background: #fffde8;
-  border: 2px dashed #f0d060;
-  border-radius: 16px; padding:20px 22px;
-  margin-bottom: 20px;
-  box-shadow: 3px 3px 0 rgba(240,208,96,0.25);
-}
-.memo-card h3 { font-family:'Gaegu',cursive; font-size:18px; color:#8a7020; margin-bottom:12px; }
-.memo-card ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
-.memo-card li { font-size:13px; color:#6a5820; display:flex; align-items:center; gap:8px; }
-.memo-card li::before { content:'✓'; color:var(--rose); font-weight:800; }
+/* MEMO */
+.memo-box{background:#fffde8;border:2px dashed #f0d060;border-radius:14px;padding:18px 20px;margin-bottom:16px;
+  box-shadow:3px 3px 0 rgba(240,208,96,.2)}
+.memo-box h3{font-family:'Gaegu',cursive;font-size:17px;color:#8a7020;margin-bottom:10px}
+.memo-box ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.memo-box li{font-size:13px;color:#6a5820;display:flex;align-items:center;gap:7px}
+.memo-box li::before{content:'✓';color:var(--rose);font-weight:800}
 
-/* ── NEXT TRIP ── */
-.next-card {
-  background: linear-gradient(135deg, #fff0f5, #fff8f0);
-  border: 2px dashed var(--pink); border-radius:20px;
-  padding:28px 24px; text-align:center; cursor:pointer;
-  transition:all 0.2s; margin-bottom:16px;
-}
-.next-card:hover { background:#fde8ee; transform:translateY(-2px); }
-.next-card .nc-emoji { font-size:40px; margin-bottom:10px; }
-.next-card h3 { font-family:'Playfair Display',serif; font-size:18px; color:var(--brown); margin-bottom:4px; }
-.next-card p { font-size:12px; color:var(--muted); }
+/* FOOTER */
+footer{text-align:center;padding:28px 20px;border-top:2px dashed var(--pink);
+  font-family:'Gaegu',cursive;font-size:17px;color:#c0a090}
 
-/* ── FOOTER ── */
-footer {
-  text-align:center; padding:32px 20px;
-  border-top:2px dashed var(--pink);
-  font-family:'Gaegu',cursive; font-size:18px; color:#c0a090;
-}
-
-/* ── UTIL ── */
-.tag-pink  { background:#fde8ee; color:var(--rose); }
-.tag-sage  { background:#e4f0e0; color:#5a8a52; }
-.tag-gold  { background:#fff3d0; color:#a07020; }
-.tag-lav   { background:#eee8f8; color:#7060a0; }
-.tag-peach { background:#fde8d0; color:#c07040; }
+/* UTILS */
+.flex-gap{display:flex;gap:8px;flex-wrap:wrap}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.text-center{text-align:center}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state .es-emoji{font-size:40px;margin-bottom:10px}
+.empty-state p{font-size:14px}
 
 @media(max-width:480px){
-  .album-grid { grid-template-columns:repeat(2,1fr); }
-  .stats-row  { grid-template-columns:repeat(3,1fr); }
-  .expense-summary { grid-template-columns:1fr; }
+  .photo-grid{grid-template-columns:repeat(2,1fr)}
+  .exp-summary{grid-template-columns:repeat(2,1fr)}
+  .form-row{grid-template-columns:1fr}
+  .trips-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     ✏️ 수정 포인트 1: 커플 이름
-     "My Love & Me" → 원하는 이름으로 변경
-     ══════════════════════════════════════ -->
 <div class="cover">
-  <div class="cover-deco">✈️ Our Private Travel Book ✈️</div>
+  <div class="cover-eyebrow">✈️ Our Private Travel Book ✈️</div>
   <h1 class="cover-title">Our <em>Story</em></h1>
   <p class="cover-sub">우리 둘만의 여행 기록 💕</p>
   <div class="cover-names">
-    <span>My Love</span>
-    <span class="heart">♡</span>
-    <span>Me</span>
+    <span id="name1-display">My Love</span>
+    <span class="hrt">♡</span>
+    <span id="name2-display">Me</span>
   </div>
-  <!-- ✏️ 수정 포인트 2: 날짜 -->
-  <div class="cover-date">✈️ 2025년 봄 · 오사카 난바</div>
 </div>
 
 <nav>
-  <button class="nav-btn active" onclick="goPage('home',this)">🏠 홈</button>
-  <button class="nav-btn" onclick="goPage('route',this)">🗺️ 동선</button>
-  <button class="nav-btn" onclick="goPage('photos',this)">📷 사진첩</button>
-  <button class="nav-btn" onclick="goPage('diary',this)">📖 일기</button>
-  <button class="nav-btn" onclick="goPage('money',this)">💴 지출</button>
-  <button class="nav-btn" onclick="goPage('next',this)">✨ 다음 여행</button>
+  <button class="nb active" onclick="goPage('home',this)">🏠 홈</button>
+  <button class="nb" onclick="goPage('trips',this)">✈️ 여행</button>
+  <button class="nb" onclick="goPage('settings',this)">⚙️ 설정</button>
 </nav>
 
 <main>
 
-<!-- ══════════ HOME ══════════ -->
+<!-- HOME -->
 <div class="page active" id="page-home">
-
-  <div class="trip-hero">
-    <div class="trip-hero-emoji">🗾</div>
-    <!-- ✏️ 여행 이름/날짜 수정 -->
-    <h2>오사카 난바</h2>
-    <p>2025년 봄 · 1박 2일</p>
-    <div class="trip-tags">
-      <span class="ttag">🛍️ 쇼핑</span>
-      <span class="ttag">🍣 맛집</span>
-      <span class="ttag">🥃 위스키</span>
-      <span class="ttag">📸 관광</span>
-    </div>
-  </div>
-
-  <div class="stats-row">
-    <div class="stat-box">
-      <div class="stat-num">9</div>
-      <div class="stat-label">방문 장소</div>
-    </div>
-    <div class="stat-box">
-      <!-- ✏️ 총 지출 금액 수정 -->
-      <div class="stat-num">¥</div>
-      <div class="stat-label">총 지출</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">💕</div>
-      <div class="stat-label">행복한 하루</div>
-    </div>
-  </div>
-
-  <div class="memo-card">
-    <h3>📌 오늘의 한 줄</h3>
-    <ul>
-      <li>쇼핑도 하고</li>
-      <li>맛있는 것도 먹고</li>
-      <li>좋은 술도 사고</li>
-      <li>행복한 하루 😊</li>
-    </ul>
-  </div>
-
-  <div class="card" style="text-align:center; padding:28px;">
-    <div style="font-size:36px; margin-bottom:10px">💕</div>
-    <div style="font-family:'Playfair Display',serif; font-size:18px; color:var(--brown); margin-bottom:6px;">
-      우리 둘만의 여행 기록
-    </div>
-    <div style="font-size:13px; color:var(--muted);">
-      동선 · 사진 · 일기 · 지출을 여기에 모아요
-    </div>
+  <div class="sec-title">💕 우리의 여행 기록</div>
+  <div id="home-stats" class="flex-gap" style="margin-bottom:20px"></div>
+  <div id="home-recent"></div>
+  <div class="memo-box">
+    <h3>📌 우리의 버킷리스트</h3>
+    <ul id="home-bucketlist"></ul>
   </div>
 </div>
 
-<!-- ══════════ ROUTE ══════════ -->
-<div class="page" id="page-route">
-  <div class="sec-title">🗺️ 오사카 난바 동선</div>
-
-  <div class="timeline" id="route-timeline">
-    <!-- JS로 렌더링 -->
-  </div>
+<!-- TRIPS LIST -->
+<div class="page" id="page-trips">
+  <div class="sec-title">✈️ 모든 여행</div>
+  <div class="trips-grid" id="trips-grid"></div>
 </div>
 
-<!-- ══════════ PHOTOS ══════════ -->
-<div class="page" id="page-photos">
-  <div class="sec-title">📷 사진첩</div>
-
-  <!--
-  ✏️ 사진 추가 방법:
-  각 photo-slot 안의 내용을 지우고 아래처럼 교체:
-  <img src="사진파일명.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">
-  -->
-
-  <div class="album-grid">
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,220,100,0.55)"></div>
-        <div class="ps-emoji">🏨</div>
-        <div class="ps-label">호텔 체크인</div>
-      </div>
-      <div class="photo-caption">포포인츠 호텔</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,180,200,0.55)"></div>
-        <div class="ps-emoji">🛍️</div>
-        <div class="ps-label">Loft 쇼핑</div>
-      </div>
-      <div class="photo-caption">난바 Loft</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(180,210,240,0.55)"></div>
-        <div class="ps-emoji">🎮</div>
-        <div class="ps-label">스루가야 굿즈</div>
-      </div>
-      <div class="photo-caption">닛폰바시 오타로드</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,220,100,0.55)"></div>
-        <div class="ps-emoji">🥃</div>
-        <div class="ps-label">위스키!</div>
-      </div>
-      <div class="photo-caption">구로몬 위스키판매소</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,180,200,0.55)"></div>
-        <div class="ps-emoji">🏃</div>
-        <div class="ps-label">글리코상 인증</div>
-      </div>
-      <div class="photo-caption">도톤보리</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(180,210,240,0.55)"></div>
-        <div class="ps-emoji">🛒</div>
-        <div class="ps-label">돈키호테</div>
-      </div>
-      <div class="photo-caption">쇼핑 마무리</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,220,100,0.55)"></div>
-        <div class="ps-emoji">🍣</div>
-        <div class="ps-label">저녁 식사</div>
-      </div>
-      <div class="photo-caption">로바다야끼 카쿠레차야</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot">
-        <div class="photo-tape" style="background:rgba(255,180,200,0.55)"></div>
-        <div class="ps-emoji">🌙</div>
-        <div class="ps-label">야경</div>
-      </div>
-      <div class="photo-caption">도톤보리 야경</div>
-    </div>
-
-    <div class="photo-wrapper">
-      <div class="photo-slot" style="border-style:dashed; border-color:var(--pink)">
-        <div class="ps-emoji">＋</div>
-        <div class="ps-label">사진 추가</div>
-      </div>
-      <div class="photo-caption"></div>
-    </div>
-
-  </div>
+<!-- TRIP DETAIL -->
+<div class="page" id="page-trip-detail">
+  <button class="btn btn-ghost btn-sm" onclick="goPage('trips',document.querySelector('.nb:nth-child(2)'));renderTrips()" style="margin-bottom:16px">← 목록으로</button>
+  <div id="trip-detail-content"></div>
 </div>
 
-<!-- ══════════ DIARY ══════════ -->
-<div class="page" id="page-diary">
-  <div class="sec-title">📖 여행 일기</div>
-
-  <!--
-  ✏️ 일기 추가 방법:
-  아래 diary-entry 블록을 복사해서 붙여넣기 후 내용 수정
-  -->
-
-  <div class="diary-entry">
-    <!-- ✏️ 날짜 수정 -->
-    <div class="diary-date">2025년 봄 · Day 1</div>
-    <!-- ✏️ 제목 수정 -->
-    <div class="diary-title">오사카 첫날 — 쇼핑도, 술도, 밥도</div>
-    <!-- ✏️ 본문 수정 (줄바꿈 그대로 반영돼요) -->
-    <div class="diary-body">오늘 하루 정말 알차게 보냈다.
-호텔 짐 풀고 바로 난바 Loft로 출발. 마나 주걱이랑 카메노코 스펀지 득템 완료 🎉
-
-스루가야에서 굿즈 구경하다 시간 가는 줄 몰랐고, 구로몬 위스키판매소에서 원하던 위스키 발견했을 때 그 기쁨이란...
-
-글리코상 앞에서 둘이서 점프샷도 찍고, 도톤보리 야경 진짜 예뻤다.
-
-마무리는 로바다야끼 — 해산물이 너무 신선하고 맛있어서 다 먹어버렸다 😋</div>
-    <!-- ✏️ 기분 이모지/텍스트 수정 -->
-    <div class="diary-mood">😊 오늘의 기분: 완벽한 하루</div>
-  </div>
-
-  <!-- ✏️ 여기에 일기 추가 (위 블록 복사 & 붙여넣기) -->
-
-  <div class="add-btn" onclick="alert('노트북에서 diary-entry 블록을 복사해서 추가해봐요 💕')">
-    ＋ 일기 추가하기
-  </div>
-</div>
-
-<!-- ══════════ MONEY ══════════ -->
-<div class="page" id="page-money">
-  <div class="sec-title">💴 지출 내역</div>
-
-  <div class="expense-summary">
-    <div class="exp-box">
-      <!-- ✏️ 총 지출 엔화 수정 -->
-      <div class="exp-amount" id="total-jpy">¥ 0</div>
-      <div class="exp-label">총 지출 (엔)</div>
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="sec-title">⚙️ 설정</div>
+  <div class="card">
+    <div class="form-group">
+      <label>커플 이름 1</label>
+      <input type="text" id="set-name1" placeholder="이름 입력"/>
     </div>
-    <div class="exp-box">
-      <!-- ✏️ 총 지출 원화 수정 -->
-      <div class="exp-amount" id="total-krw">₩ 0</div>
-      <div class="exp-label">총 지출 (원)</div>
+    <div class="form-group">
+      <label>커플 이름 2</label>
+      <input type="text" id="set-name2" placeholder="이름 입력"/>
     </div>
+    <div class="form-group">
+      <label>버킷리스트 (줄바꿈으로 구분)</label>
+      <textarea id="set-bucketlist" rows="5" placeholder="도쿄&#10;발리&#10;파리"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">저장하기 💕</button>
   </div>
-
-  <!--
-  ✏️ 지출 추가 방법:
-  expenses 배열에 항목 추가 (JS 섹션에 있어요)
-  { name:"항목명", cat:"카테고리", amount:금액, icon:"이모지" }
-  -->
-
-  <table class="expense-table" id="expense-table">
-    <thead>
-      <tr>
-        <th>항목</th>
-        <th>카테고리</th>
-        <th style="text-align:right">금액 (¥)</th>
-      </tr>
-    </thead>
-    <tbody id="expense-tbody"></tbody>
-  </table>
-
-</div>
-
-<!-- ══════════ NEXT ══════════ -->
-<div class="page" id="page-next">
-  <div class="sec-title">✨ 다음 여행</div>
-
-  <!--
-  ✏️ 다음 여행 카드 추가:
-  next-card 블록 복사 후 내용 수정
-  -->
-
-  <div class="next-card">
-    <div class="nc-emoji">🌸</div>
-    <h3>도쿄</h3>
-    <p>🇯🇵 계획 중 · 카페 투어 + 팝업스토어</p>
-  </div>
-
-  <div class="next-card">
-    <div class="nc-emoji">🌴</div>
-    <h3>방콕</h3>
-    <p>🇹🇭 가고 싶다 · 쇼핑 + 마사지</p>
-  </div>
-
-  <div class="next-card">
-    <div class="nc-emoji">⛩️</div>
-    <h3>교토</h3>
-    <p>🇯🇵 버킷리스트 · 기모노 체험</p>
-  </div>
-
-  <!-- ✏️ 여기에 다음 여행 추가 -->
-
-  <div class="memo-card" style="background:#f0f8ff; border-color:#a0c8e8; margin-top:8px;">
-    <h3 style="color:#406080">💭 가고 싶은 곳 메모</h3>
-    <ul style="color:#406080">
-      <!-- ✏️ 가고 싶은 곳 수정 -->
-      <li>후쿠오카 — 라멘 투어</li>
-      <li>발리 — 허니문 감성</li>
-      <li>파리 — 언젠간 꼭 💕</li>
-    </ul>
+  <div class="card mt-16" style="border-color:#f0c0c0">
+    <div style="font-size:13px;color:#c04040;margin-bottom:10px;font-weight:700">⚠️ 데이터 초기화</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">모든 여행 기록이 삭제돼요. 신중하게!</div>
+    <button class="btn btn-danger btn-sm" onclick="resetAll()">전체 초기화</button>
   </div>
 </div>
 
 </main>
 
-<footer>
-  우리 둘만의 기록 — 영원히 💕<br/>
-  <span style="font-size:13px; opacity:0.6">Our Travel Book ✈️</span>
-</footer>
+<footer>우리 둘만의 기록 — 영원히 💕<br/><span style="font-size:12px;opacity:.6">Our Travel Book ✈️</span></footer>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Trip Modal -->
+<div class="modal-overlay" id="modal-trip">
+  <div class="modal">
+    <h3 id="modal-trip-title">새 여행 추가</h3>
+    <div class="form-group">
+      <label>여행 이름</label>
+      <input type="text" id="ti-name" placeholder="예: 오사카 난바"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>나라 / 도시</label>
+        <input type="text" id="ti-country" placeholder="예: 🇯🇵 일본"/>
+      </div>
+      <div class="form-group">
+        <label>날짜</label>
+        <input type="text" id="ti-date" placeholder="예: 2025년 봄"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>이모지</label>
+      <div class="emoji-picker" id="trip-emoji-picker"></div>
+    </div>
+    <div class="form-group">
+      <label>상태</label>
+      <select id="ti-status">
+        <option value="done">✅ 다녀왔어요</option>
+        <option value="plan">🌟 계획 중</option>
+        <option value="future">💭 가고 싶어요</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>태그 (쉼표로 구분)</label>
+      <input type="text" id="ti-tags" placeholder="예: 쇼핑, 맛집, 위스키"/>
+    </div>
+    <div class="form-group">
+      <label>배경색</label>
+      <select id="ti-color">
+        <option value="linear-gradient(135deg,#fde8d0,#f9c784)">🍑 복숭아</option>
+        <option value="linear-gradient(135deg,#fce4ec,#f4a7b9)">🌸 핑크</option>
+        <option value="linear-gradient(135deg,#e8f4fd,#d4c5e8)">💜 라벤더</option>
+        <option value="linear-gradient(135deg,#e8f5e9,#b8d4b0)">🌿 세이지</option>
+        <option value="linear-gradient(135deg,#fff3e0,#f9c784)">🌟 골드</option>
+        <option value="linear-gradient(135deg,#e3f2fd,#90caf9)">🔵 블루</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-trip')">취소</button>
+      <button class="btn btn-primary" onclick="saveTrip()">저장 💕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diary Modal -->
+<div class="modal-overlay" id="modal-diary">
+  <div class="modal">
+    <h3 id="modal-diary-title">일기 쓰기 📖</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>날짜</label>
+        <input type="text" id="di-date" placeholder="예: 2025년 5월 10일"/>
+      </div>
+      <div class="form-group">
+        <label>기분</label>
+        <input type="text" id="di-mood" placeholder="예: 😊 완벽한 하루"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>제목</label>
+      <input type="text" id="di-title" placeholder="오늘 하루 한 줄 요약"/>
+    </div>
+    <div class="form-group">
+      <label>일기</label>
+      <textarea id="di-body" rows="7" placeholder="오늘 있었던 일을 써봐요..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-diary')">취소</button>
+      <button class="btn btn-primary" onclick="saveDiary()">저장 💕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <h3 id="modal-expense-title">지출 추가 💴</h3>
+    <div class="form-group">
+      <label>항목</label>
+      <input type="text" id="ex-name" placeholder="예: 난바 Loft 쇼핑"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>금액</label>
+        <input type="number" id="ex-amount" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label>통화</label>
+        <select id="ex-currency">
+          <option value="AED">AED (디르함)</option>
+          <option value="JPY">JPY (엔)</option>
+          <option value="KRW">KRW (원)</option>
+          <option value="USD">USD (달러)</option>
+          <option value="EUR">EUR (유로)</option>
+          <option value="CZK">CZK (코루나)</option>
+          <option value="THB">THB (바트)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>카테고리</label>
+      <select id="ex-cat">
+        <option>🛍️ 쇼핑</option>
+        <option>🍽️ 식사</option>
+        <option>🏨 숙박</option>
+        <option>🚇 교통</option>
+        <option>🥃 술 / 음료</option>
+        <option>🎡 관광 / 입장료</option>
+        <option>💊 기타</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>메모 (선택)</label>
+      <input type="text" id="ex-note" placeholder="간단한 메모"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-expense')">취소</button>
+      <button class="btn btn-primary" onclick="saveExpense()">저장 💕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stop Modal -->
+<div class="modal-overlay" id="modal-stop">
+  <div class="modal">
+    <h3 id="modal-stop-title">동선 추가 📍</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>장소 이름</label>
+        <input type="text" id="st-name" placeholder="예: 난바 Loft"/>
+      </div>
+      <div class="form-group">
+        <label>이모지</label>
+        <input type="text" id="st-icon" placeholder="예: 🛍️" maxlength="4"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>시간</label>
+        <input type="text" id="st-time" placeholder="예: 16:00"/>
+      </div>
+      <div class="form-group">
+        <label>카테고리</label>
+        <select id="st-cat">
+          <option>쇼핑</option><option>식사</option><option>관광</option>
+          <option>이동</option><option>숙박</option><option>위스키</option><option>기타</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>이동 방법</label>
+      <input type="text" id="st-transport" placeholder="예: 🚶 도보 5분"/>
+    </div>
+    <div class="form-group">
+      <label>할 것 (줄바꿈으로 구분)</label>
+      <textarea id="st-todo" rows="3" placeholder="체크인 완료&#10;짐 정리하기"></textarea>
+    </div>
+    <div class="form-group">
+      <label>살 것 (줄바꿈으로 구분)</label>
+      <textarea id="st-buy" rows="3" placeholder="마나 주걱&#10;카메노코 스펀지"></textarea>
+    </div>
+    <div class="form-group">
+      <label>먹을 것 (줄바꿈으로 구분)</label>
+      <textarea id="st-eat" rows="2" placeholder="타코야끼&#10;소프트아이스크림"></textarea>
+    </div>
+    <div class="form-group">
+      <label>💡 팁 메모</label>
+      <input type="text" id="st-note" placeholder="예: 면세는 5,000엔 이상!"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-stop')">취소</button>
+      <button class="btn btn-primary" onclick="saveStop()">저장 💕</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// ============================================================
-// ✏️ 수정 포인트: 동선 데이터
-// todo / buy / eat 항목 추가·삭제 자유롭게!
-// ============================================================
-const stops = [
-  { id:1, icon:"🏨", name:"포포인츠 호텔 체크인", time:"16:00", cat:"이동", cc:"tag-lav",
-    todo:["체크인 완료","짐 정리 후 가벼운 복장으로","충전기 / 보조배터리 챙기기","오늘 동선 확인"],
-    buy:[], eat:[],
-    note:"짐은 두고 최대한 가볍게 출발! 나중에 쇼핑 짐 늘어날 예정 🛍️",
-    transport:null },
-  { id:2, icon:"🛍️", name:"난바 Loft", time:"", cat:"쇼핑", cc:"tag-pink",
-    todo:["B1~1F 생활용품 코너 먼저","면세 5,000엔 이상 확인"],
-    buy:["마나 주걱 (おたま)","카메노코 스펀지 (亀の子束子)","귀여운 마스킹테이프 / 스티커","기타 생활소품"],
-    eat:[],
-    note:"면세는 여권 필수! 세금 포함 5,000엔 이상이면 가능해요.",
-    transport:"🚶 도보 약 5분 | 호텔 → 난바 방향" },
-  { id:3, icon:"🎮", name:"스루가야 닛폰바시 오타로드점", time:"", cat:"쇼핑", cc:"tag-pink",
-    todo:["원하는 굿즈 미리 검색","2층 이상도 꼭 올라가기"],
-    buy:["캐릭터 굿즈 / 피규어","아크릴 스탠드","빈티지 게임 소프트"],
-    eat:[],
-    note:"주변 굿즈샵도 같이 구경하면 더 좋아요!",
-    transport:"🚶 도보 약 10분 | 난바 Loft → 닛폰바시" },
-  { id:4, icon:"🥃", name:"구로몬 시장 → 위스키판매소", time:"~22:00 마감", cat:"위스키", cc:"tag-gold",
-    todo:["22:00 마감 전 도착!","위스키 이름 미리 메모","면세 서류 챙기기"],
-    buy:["원하는 위스키 (이름 미리 검색해두기 ✍️)","구로몬 시장 간식"],
-    eat:["구로몬 시장 꼬치 / 해산물 간식"],
-    note:"⭐ 오늘의 하이라이트! 무거우니 구매 후 호텔에 잠깐 맡겨도 OK.",
-    transport:"🚇 지하철 또는 🚶 도보 15분 | 닛폰바시 → 구로몬" },
-  { id:5, icon:"📸", name:"글리코상 인증샷", time:"", cat:"관광", cc:"tag-sage",
-    todo:["다리 위 베스트 각도","야경 배경 인증샷","둘이 글리코 포즈 필수!"],
-    buy:[], eat:[],
-    note:"도톤보리 강변 다리 위가 제일 잘 나와요. 저녁 네온사인 켜지면 더 예뻐요 ✨",
-    transport:"🚶 도보 약 10분 | 구로몬 → 도톤보리" },
-  { id:6, icon:"🤳", name:"글리코 — 다양한 포즈", time:"", cat:"관광", cc:"tag-sage",
-    todo:["결승 포즈 (두 팔 들기)","점프샷","뒷모습 버전","야경 보케 버전"],
-    buy:[],
-    eat:["도톤보리 타코야끼 🐙","소프트아이스크림"],
-    note:"사람 많으니까 타이밍 잡아서 빠르게! 삼각대 있으면 더 좋아요.",
-    transport:"📍 같은 장소" },
-  { id:7, icon:"🛒", name:"돈키호테 난바점", time:"", cat:"쇼핑", cc:"tag-pink",
-    todo:["쇼핑 리스트 미리 정리","면세 카운터 위치 확인 (최상층)"],
-    buy:["과자 / 스낵 (선물용)","화장품 / 드럭스토어 아이템","돈키 오리지널 상품","술 / 음료 추가 구매"],
-    eat:[],
-    note:"쇼핑은 끝이 없다...! 💕 카테고리별 합산 5,000엔↑ 면세 가능.",
-    transport:"🚶 도보 약 5분 | 도톤보리 → 돈키호테" },
-  { id:8, icon:"🏨", name:"포포인츠 복귀 — 짐 두기", time:"", cat:"이동", cc:"tag-lav",
-    todo:["쇼핑백 정리","가볍게 갈아입기","저녁 식사 예약 확인"],
-    buy:[], eat:[],
-    note:"무거운 짐 두고 저녁은 가볍게! 잠깐 쉬어가는 타임 🌿",
-    transport:"🚶 도보 약 10분 | 돈키 → 호텔" },
-  { id:9, icon:"🍣", name:"로바다야끼 카쿠레차야", time:"저녁", cat:"식사", cc:"tag-peach",
-    todo:["예약 확인","오늘 사진 같이 보기 💕"],
-    buy:[],
-    eat:["신선한 해산물 모둠","계절 야채 로바다야끼","사케 또는 맥주","오늘 산 위스키로 건배 🥃"],
-    note:"오늘의 마무리! 천천히 즐기면서 오늘 찍은 사진 같이 보기 📱",
-    transport:"🚶 도보 약 5분 | 호텔 → 식당" }
-];
-
-// ============================================================
-// ✏️ 수정 포인트: 지출 데이터
-// { name:"항목", cat:"카테고리", amount:금액(엔), icon:"이모지" }
-// ============================================================
-const expenses = [
-  { name:"난바 Loft (마나 주걱 외)", cat:"쇼핑", amount:3800, icon:"🛍️" },
-  { name:"스루가야 굿즈", cat:"쇼핑", amount:5200, icon:"🎮" },
-  { name:"위스키", cat:"위스키", amount:12000, icon:"🥃" },
-  { name:"타코야끼", cat:"식사", amount:800, icon:"🐙" },
-  { name:"돈키호테", cat:"쇼핑", amount:8500, icon:"🛒" },
-  { name:"로바다야끼 저녁", cat:"식사", amount:6400, icon:"🍣" },
-  { name:"지하철 / 교통", cat:"교통", amount:1200, icon:"🚇" },
-  // ✏️ 항목 추가: 위 형식으로 줄 추가하면 자동 계산돼요
-];
-
-const catStyle = {
-  "쇼핑":  "background:#fde8ee;color:#e8728a",
-  "식사":  "background:#fde8d0;color:#c07040",
-  "위스키":"background:#fff3d0;color:#a07020",
-  "교통":  "background:#e8f0fe;color:#4060c0",
-  "기타":  "background:#f0f0f0;color:#707070",
+// ── STATE ──
+let DB = {
+  settings: { name1:'My Love', name2:'Me', bucketlist:['도쿄 — 카페 투어','발리 — 허니문 감성','파리 — 언젠간 꼭 💕'] },
+  trips: []
 };
+let currentTripId = null;
+let editingId = null;
+let currentSubTab = 'route';
+const EMOJIS = ['🗾','🌸','🏯','🗼','🇨🇿','🏰','🌴','🗺️','✈️','🌍','🏖️','🎡','🌃','🍜','🥃','🎌'];
 
-// ── render route ──
-function renderRoute() {
-  const checked = {};
-  stops.forEach(s => { checked[s.id] = {todo:[],buy:[],eat:[]}; });
-
-  let html = '';
-  stops.forEach((s,i) => {
-    if (s.transport) {
-      html += `<div class="transport-row"><hr/><div class="transport-pill">${s.transport}</div><hr/></div>`;
-    }
-    let detail = '';
-    if (s.todo.length) detail += group("✅ 할 것", s.todo, s.id, "todo", checked);
-    if (s.buy.length)  detail += group("🛍️ 살 것", s.buy,  s.id, "buy",  checked);
-    if (s.eat.length)  detail += group("🍽️ 먹을 것", s.eat, s.id, "eat",  checked);
-    if (s.note)        detail += `<div class="tip-note">💡 ${s.note}</div>`;
-    html += `<div class="tl-item" id="ti${s.id}" onclick="toggleTl(${s.id})">
-      <div class="tl-dot">${s.id}</div>
-      <div class="tl-header">
-        <span class="tl-icon">${s.icon}</span>
-        <span class="tl-name">${s.name}</span>
-        ${s.time ? `<span style="font-size:11px;color:#aaa;flex-shrink:0">${s.time}</span>` : ''}
-        <span class="tl-badge ${s.cc}">${s.cat}</span>
-        <span class="tl-chevron">▼</span>
-      </div>
-      <div class="tl-detail">${detail}</div>
-    </div>`;
-  });
-  document.getElementById('route-timeline').innerHTML = html;
+// ── PERSIST ──
+function save(){ try{ localStorage.setItem('travelbook', JSON.stringify(DB)); }catch(e){} }
+function load(){
+  try{
+    const d = localStorage.getItem('travelbook');
+    if(d){ DB = JSON.parse(d); }
+    else{ seedData(); }
+  }catch(e){ seedData(); }
 }
 
-function group(title, items, sid, type, checked) {
-  const lis = items.map((item,i) =>
-    `<li id="cl-${sid}-${type}-${i}" onclick="toggleCl(${sid},'${type}',${i},event)">
-      <div class="cb" id="cb-${sid}-${type}-${i}"></div><span>${item}</span>
-    </li>`).join('');
-  return `<div class="detail-group">
-    <div class="detail-group-title">${title}</div>
-    <ul class="cl">${lis}</ul>
+function seedData(){
+  DB.trips = [
+    { id:'t1', name:'체코 여행', country:'🇨🇿 체코', date:'이전 여행', emoji:'🏰',
+      color:'linear-gradient(135deg,#e3f2fd,#90caf9)', status:'done',
+      tags:['관광','역사','맥주'],
+      stops:[], diary:[], expenses:[], photos:[] },
+    { id:'t2', name:'오사카 + 한국', country:'🇯🇵 일본 · 🇰🇷 한국', date:'2025년 봄', emoji:'🗾',
+      color:'linear-gradient(135deg,#fde8d0,#f9c784)', status:'done',
+      tags:['쇼핑','맛집','위스키'],
+      stops:[
+        {id:'s1',icon:'🏨',name:'포포인츠 호텔 체크인',time:'16:00',cat:'숙박',transport:null,
+          todo:['체크인 완료','짐 정리 후 가볍게'],buy:[],eat:[],note:'짐 두고 가볍게 출발!'},
+        {id:'s2',icon:'🛍️',name:'난바 Loft',time:'',cat:'쇼핑',transport:'🚶 도보 5분',
+          todo:['면세 5,000엔 확인'],buy:['마나 주걱','카메노코 스펀지','마스킹테이프'],eat:[],note:'면세는 여권 필수!'},
+        {id:'s3',icon:'🎮',name:'스루가야 닛폰바시 오타로드',time:'',cat:'쇼핑',transport:'🚶 도보 10분',
+          todo:['2층 이상도 확인'],buy:['캐릭터 굿즈','피규어'],eat:[],note:'주변 굿즈샵도 함께!'},
+        {id:'s4',icon:'🥃',name:'구로몬 위스키판매소',time:'~22:00',cat:'위스키',transport:'🚇 지하철 또는 도보 15분',
+          todo:['22:00 마감 전!','위스키 이름 메모'],buy:['원하는 위스키'],eat:['구로몬 시장 꼬치'],note:'⭐ 오늘의 하이라이트!'},
+        {id:'s5',icon:'📸',name:'글리코상 인증샷',time:'',cat:'관광',transport:'🚶 도보 10분',
+          todo:['둘이 글리코 포즈 필수!'],buy:[],eat:['타코야끼 🐙'],note:'저녁 네온사인 켜지면 더 예뻐요!'},
+        {id:'s6',icon:'🛒',name:'돈키호테',time:'',cat:'쇼핑',transport:'🚶 도보 5분',
+          todo:['면세 카운터 최상층'],buy:['과자/스낵','화장품','오리지널 상품'],eat:[],note:'쇼핑은 끝이 없다...! 💕'},
+        {id:'s7',icon:'🍣',name:'로바다야끼 카쿠레차야',time:'저녁',cat:'식사',transport:'🚶 도보 5분',
+          todo:['예약 확인'],buy:[],eat:['해산물 모둠','사케','오늘 산 위스키로 건배 🥃'],note:'오늘의 완벽한 마무리!'}
+      ],
+      diary:[
+        {id:'d1',date:'2025년 봄 · Day 1',title:'오사카 첫날 — 쇼핑도, 술도, 밥도',
+          body:'오늘 하루 정말 알차게 보냈다.\n호텔 짐 풀고 바로 난바 Loft로 출발. 마나 주걱이랑 카메노코 스펀지 득템 완료 🎉\n\n구로몬 위스키판매소에서 원하던 위스키 발견했을 때 그 기쁨이란...\n\n글리코상 앞에서 둘이서 점프샷도 찍고, 도톤보리 야경 진짜 예뻤다.\n\n마무리는 로바다야끼 — 해산물이 너무 신선하고 맛있어서 다 먹어버렸다 😋',
+          mood:'😊 완벽한 하루'}
+      ],
+      expenses:[
+        {id:'e1',name:'난바 Loft',cat:'🛍️ 쇼핑',amount:3800,currency:'JPY',note:'마나 주걱 외'},
+        {id:'e2',name:'스루가야 굿즈',cat:'🛍️ 쇼핑',amount:5200,currency:'JPY',note:''},
+        {id:'e3',name:'위스키',cat:'🥃 술 / 음료',amount:12000,currency:'JPY',note:'구로몬 위스키판매소'},
+        {id:'e4',name:'타코야끼',cat:'🍽️ 식사',amount:800,currency:'JPY',note:'도톤보리'},
+        {id:'e5',name:'돈키호테',cat:'🛍️ 쇼핑',amount:8500,currency:'JPY',note:''},
+        {id:'e6',name:'로바다야끼 저녁',cat:'🍽️ 식사',amount:6400,currency:'JPY',note:''},
+        {id:'e7',name:'지하철',cat:'🚇 교통',amount:1200,currency:'JPY',note:''}
+      ],
+      photos:[]
+    },
+    { id:'t3', name:'다음 여행', country:'미정', date:'계획 중', emoji:'✈️',
+      color:'linear-gradient(135deg,#eee8f8,#d4c5e8)', status:'future',
+      tags:['기대돼요 💕'],
+      stops:[], diary:[], expenses:[], photos:[] }
+  ];
+  save();
+}
+
+// ── RATES (AED base) ──
+const RATES_TO_KRW = { AED:370, JPY:9.3, KRW:1, USD:1360, EUR:1480, CZK:61, THB:39 };
+const RATES_TO_AED = { AED:1, JPY:0.025, KRW:0.0027, USD:3.67, EUR:3.98, CZK:0.165, THB:0.105 };
+
+function toKRW(amount, currency){ return Math.round(amount * (RATES_TO_KRW[currency]||1)); }
+function toAED(amount, currency){ return (amount * (RATES_TO_AED[currency]||1)).toFixed(2); }
+
+function uid(){ return 'id_' + Math.random().toString(36).slice(2,9); }
+
+// ── PAGE NAV ──
+window.goPage = function(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+// ── HOME ──
+function renderHome(){
+  const done = DB.trips.filter(t=>t.status==='done').length;
+  const plan = DB.trips.filter(t=>t.status==='plan').length;
+  document.getElementById('home-stats').innerHTML =
+    `<div class="card" style="flex:1;min-width:100px;text-align:center;padding:14px">
+      <div style="font-size:26px;font-family:'Playfair Display',serif;color:var(--rose)">${done}</div>
+      <div style="font-size:11px;color:var(--muted)">다녀온 여행</div>
+    </div>
+    <div class="card" style="flex:1;min-width:100px;text-align:center;padding:14px">
+      <div style="font-size:26px;font-family:'Playfair Display',serif;color:var(--rose)">${DB.trips.length}</div>
+      <div style="font-size:11px;color:var(--muted)">총 여행</div>
+    </div>
+    <div class="card" style="flex:1;min-width:100px;text-align:center;padding:14px">
+      <div style="font-size:26px;font-family:'Playfair Display',serif;color:var(--rose)">💕</div>
+      <div style="font-size:11px;color:var(--muted)">함께한 추억</div>
+    </div>`;
+
+  const recent = DB.trips.filter(t=>t.status==='done').slice(-1)[0];
+  document.getElementById('home-recent').innerHTML = recent ?
+    `<div class="card" style="cursor:pointer" onclick="openTrip('${recent.id}')">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:700">✈️ 가장 최근 여행</div>
+      <div style="font-size:32px;margin-bottom:4px">${recent.emoji}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--brown)">${recent.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${recent.date}</div>
+    </div>` : '';
+
+  const bl = document.getElementById('home-bucketlist');
+  bl.innerHTML = DB.settings.bucketlist.map(b=>`<li>${b}</li>`).join('');
+  document.getElementById('name1-display').textContent = DB.settings.name1;
+  document.getElementById('name2-display').textContent = DB.settings.name2;
+}
+
+// ── TRIPS LIST ──
+function renderTrips(){
+  const grid = document.getElementById('trips-grid');
+  const statusLabel = {done:'✅ 다녀왔어요', plan:'🌟 계획 중', future:'💭 가고 싶어요'};
+  const statusClass = {done:'status-done', plan:'status-plan', future:'status-future'};
+  grid.innerHTML = DB.trips.map(t=>`
+    <div class="trip-card" onclick="openTrip('${t.id}')">
+      <div class="trip-card-actions">
+        <button class="icon-btn icon-btn-edit" onclick="event.stopPropagation();editTrip('${t.id}')">✏️</button>
+        <button class="icon-btn icon-btn-del" onclick="event.stopPropagation();deleteTrip('${t.id}')">🗑️</button>
+      </div>
+      <div class="trip-card-cover" style="background:${t.color}">${t.emoji}</div>
+      <div class="trip-card-body">
+        <div class="trip-card-country">${t.country}</div>
+        <div class="trip-card-name">${t.name}</div>
+        <div class="trip-card-date">${t.date}</div>
+        <div class="trip-card-tags">${t.tags.map(tg=>`<span class="tag tag-pink">${tg}</span>`).join('')}</div>
+        <div class="${statusClass[t.status]} status-badge">${statusLabel[t.status]}</div>
+      </div>
+    </div>
+  `).join('') + `<div class="add-trip-card" onclick="openTripModal()"><div class="plus">＋</div><span>새 여행 추가</span></div>`;
+}
+
+// ── OPEN TRIP ──
+window.openTrip = function(id){
+  currentTripId = id;
+  currentSubTab = 'route';
+  const trip = DB.trips.find(t=>t.id===id);
+  if(!trip) return;
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-trip-detail').classList.add('active');
+  renderTripDetail(trip);
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+function renderTripDetail(trip){
+  const statusLabel = {done:'✅ 다녀왔어요', plan:'🌟 계획 중', future:'💭 가고 싶어요'};
+  const tabs = [{id:'route',label:'🗺️ 동선'},{id:'photos',label:'📷 사진첩'},{id:'diary',label:'📖 일기'},{id:'expenses',label:'💴 지출'}];
+  document.getElementById('trip-detail-content').innerHTML = `
+    <div class="trip-detail-header">
+      <div class="tdh-emoji">${trip.emoji}</div>
+      <div class="tdh-name">${trip.name}</div>
+      <div class="tdh-meta">${trip.country} · ${trip.date} · ${statusLabel[trip.status]}</div>
+      <div class="tdh-tags">${trip.tags.map(t=>`<span class="tag tag-pink">${t}</span>`).join('')}</div>
+    </div>
+    <div class="sub-tabs">${tabs.map(t=>`<button class="stab ${t.id===currentSubTab?'active':''}" onclick="switchSub('${t.id}',this)">${t.label}</button>`).join('')}</div>
+    <div id="sub-route" class="sub-page ${currentSubTab==='route'?'active':''}"></div>
+    <div id="sub-photos" class="sub-page ${currentSubTab==='photos'?'active':''}"></div>
+    <div id="sub-diary" class="sub-page ${currentSubTab==='diary'?'active':''}"></div>
+    <div id="sub-expenses" class="sub-page ${currentSubTab==='expenses'?'active':''}"></div>
+  `;
+  renderRoute(trip);
+  renderPhotos(trip);
+  renderDiary(trip);
+  renderExpenses(trip);
+}
+
+window.switchSub = function(id, btn){
+  currentSubTab = id;
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sub-'+id).classList.add('active');
+};
+
+// ── ROUTE ──
+function renderRoute(trip){
+  const el = document.getElementById('sub-route');
+  const catColors = {쇼핑:'tag-pink',식사:'tag-peach',관광:'tag-sage',이동:'tag-lav',숙박:'tag-lav',위스키:'tag-gold',기타:'tag-blue'};
+  if(!trip.stops.length){
+    el.innerHTML = `<div class="empty-state"><div class="es-emoji">🗺️</div><p>아직 동선이 없어요<br/>추가해봐요!</p></div>`;
+  } else {
+    el.innerHTML = `<div class="timeline">${trip.stops.map((s,i)=>{
+      const trans = s.transport ? `<div class="transport-row"><hr/><div class="transport-pill">${s.transport}</div><hr/></div>` : '';
+      let body = '';
+      if(s.todo?.length){ body += `<div class="dg-title">✅ 할 것</div><ul class="cl">${s.todo.map((item,j)=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${item}</span></li>`).join('')}</ul>`; }
+      if(s.buy?.length){ body += `<div class="dg-title">🛍️ 살 것</div><ul class="cl">${s.buy.map(item=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${item}</span></li>`).join('')}</ul>`; }
+      if(s.eat?.length){ body += `<div class="dg-title">🍽️ 먹을 것</div><ul class="cl">${s.eat.map(item=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${item}</span></li>`).join('')}</ul>`; }
+      if(s.note){ body += `<div class="tl-note">💡 ${s.note}</div>`; }
+      return `${i>0?trans:''}
+        <div class="tl-item" id="tl-${s.id}" onclick="toggleTl('${s.id}')">
+          <div class="tl-dot">${i+1}</div>
+          <div class="tl-head">
+            <span class="tl-icon">${s.icon}</span>
+            <span class="tl-name">${s.name}</span>
+            ${s.time?`<span style="font-size:11px;color:#aaa">${s.time}</span>`:''}
+            <span class="tag ${catColors[s.cat]||'tag-blue'} tl-badge" style="font-size:10px;padding:2px 8px">${s.cat}</span>
+            <span class="tl-chevron">▼</span>
+          </div>
+          <div class="tl-body">${body}
+            <div class="flex-gap mt-8">
+              <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editStop('${s.id}')">✏️ 수정</button>
+              <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteStop('${s.id}')">🗑️ 삭제</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+  }
+  el.innerHTML += `<div class="flex-gap mt-16"><button class="btn btn-primary" onclick="openStopModal()">＋ 장소 추가</button></div>`;
+}
+
+window.toggleTl = function(id){
+  const el = document.getElementById('tl-'+id);
+  if(!el) return;
+  const open = el.classList.contains('open');
+  document.querySelectorAll('.tl-item').forEach(e=>e.classList.remove('open'));
+  if(!open) el.classList.add('open');
+};
+
+// ── PHOTOS ──
+function renderPhotos(trip){
+  const el = document.getElementById('sub-photos');
+  const tapes = ['rgba(255,220,100,.55)','rgba(255,180,200,.55)','rgba(180,210,240,.55)'];
+  el.innerHTML = `<div class="photo-grid">${
+    (trip.photos||[]).map((p,i)=>`
+      <div class="photo-wrap">
+        <div class="photo-slot">
+          <div class="photo-tape" style="background:${tapes[i%3]}"></div>
+          ${p.url?`<img src="${p.url}" alt="${p.caption}"/>`:`<div class="ps-emoji">${p.emoji||'📷'}</div><div style="font-size:11px;color:var(--muted)">${p.caption}</div>`}
+        </div>
+        <div class="photo-caption">${p.caption}</div>
+      </div>`)
+    .join('')}
+    <div class="photo-wrap">
+      <div class="photo-slot" style="border-style:dashed;border-color:var(--pink)" onclick="addPhoto()">
+        <div class="ps-emoji">＋</div>
+        <div style="font-size:11px;color:var(--pink);font-weight:700">사진 추가</div>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-top:12px;text-align:center">
+    💡 사진 URL을 붙여넣거나 Google Photos 링크를 사용해봐요
   </div>`;
 }
 
-window.toggleTl = function(id) {
-  const el = document.getElementById('ti'+id);
-  const isOpen = el.classList.contains('open');
-  document.querySelectorAll('.tl-item').forEach(e => e.classList.remove('open'));
-  if (!isOpen) el.classList.add('open');
+window.addPhoto = function(){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  if(!trip) return;
+  const url = prompt('사진 URL을 입력하세요 (Google Photos, Imgur 등):\n(비우면 이모지로 표시돼요)') || '';
+  const caption = prompt('사진 설명을 입력하세요:') || '추억';
+  const emoji = url ? '📷' : (prompt('이모지를 입력하세요 (예: 🏨):') || '📷');
+  trip.photos.push({id:uid(), url, caption, emoji});
+  save();
+  renderPhotos(trip);
 };
 
-window.toggleCl = function(sid, type, idx, e) {
-  e.stopPropagation();
-  const li = document.getElementById(`cl-${sid}-${type}-${idx}`);
-  const cb = document.getElementById(`cb-${sid}-${type}-${idx}`);
-  li.classList.toggle('done');
-  cb.textContent = li.classList.contains('done') ? '✓' : '';
-  cb.style.background = li.classList.contains('done') ? 'var(--rose)' : '';
-  cb.style.borderColor = li.classList.contains('done') ? 'var(--rose)' : '';
-};
-
-// ── render expenses ──
-function renderExpenses() {
-  const tbody = document.getElementById('expense-tbody');
-  let total = 0;
-  let rows = expenses.map(e => {
-    total += e.amount;
-    const cs = catStyle[e.cat] || catStyle["기타"];
-    return `<tr>
-      <td>${e.icon} ${e.name}</td>
-      <td><span class="exp-cat" style="${cs}">${e.cat}</span></td>
-      <td style="text-align:right;font-weight:600">¥${e.amount.toLocaleString()}</td>
-    </tr>`;
-  }).join('');
-  rows += `<tr class="exp-total-row">
-    <td colspan="2">💴 합계</td>
-    <td style="text-align:right">¥${total.toLocaleString()}</td>
-  </tr>`;
-  tbody.innerHTML = rows;
-  // 원화 계산 (환율 약 9.3원/엔 — ✏️ 수정 가능)
-  const rate = 9.3;
-  document.getElementById('total-jpy').textContent = '¥ ' + total.toLocaleString();
-  document.getElementById('total-krw').textContent = '₩ ' + Math.round(total * rate).toLocaleString();
+// ── DIARY ──
+function renderDiary(trip){
+  const el = document.getElementById('sub-diary');
+  el.innerHTML = (trip.diary||[]).length ?
+    trip.diary.map(d=>`
+      <div class="diary-entry">
+        <div class="diary-date">${d.date}</div>
+        <div class="diary-title">${d.title}</div>
+        <div class="diary-body">${d.body}</div>
+        <div class="diary-mood">${d.mood}</div>
+        <div class="diary-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editDiary('${d.id}')">✏️ 수정</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDiary('${d.id}')">🗑️ 삭제</button>
+        </div>
+      </div>`).join('')
+    : `<div class="empty-state"><div class="es-emoji">📖</div><p>아직 일기가 없어요<br/>오늘 하루를 기록해봐요!</p></div>`;
+  el.innerHTML += `<button class="btn btn-primary" onclick="openDiaryModal()">✏️ 일기 쓰기</button>`;
 }
 
-// ── page nav ──
-window.goPage = function(id, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  btn.classList.add('active');
-  window.scrollTo({top:0, behavior:'smooth'});
+// ── EXPENSES ──
+function renderExpenses(trip){
+  const el = document.getElementById('sub-expenses');
+  const exps = trip.expenses||[];
+  const byCurrency = {};
+  exps.forEach(e=>{
+    if(!byCurrency[e.currency]) byCurrency[e.currency]=0;
+    byCurrency[e.currency]+=e.amount;
+  });
+  const totalKRW = exps.reduce((s,e)=>s+toKRW(e.amount,e.currency),0);
+  const totalAED = exps.reduce((s,e)=>s+parseFloat(toAED(e.amount,e.currency)),0).toFixed(2);
+
+  const summaryBoxes = [
+    `<div class="exp-box"><div class="exp-amount">₩${totalKRW.toLocaleString()}</div><div class="exp-label">총액 (원화 환산)</div></div>`,
+    `<div class="exp-box"><div class="exp-amount">AED ${totalAED}</div><div class="exp-label">총액 (디르함 환산)</div></div>`,
+    ...Object.entries(byCurrency).map(([cur,amt])=>`<div class="exp-box"><div class="exp-amount" style="font-size:16px">${cur} ${amt.toLocaleString()}</div><div class="exp-label">실제 지출</div></div>`)
+  ];
+
+  el.innerHTML = `<div class="exp-summary">${summaryBoxes.join('')}</div>`;
+
+  if(exps.length){
+    el.innerHTML += `<table class="exp-table">
+      <thead><tr><th>항목</th><th>카테고리</th><th>금액</th><th>₩환산</th><th></th></tr></thead>
+      <tbody>${exps.map(e=>`<tr>
+        <td>${e.name}${e.note?`<br/><span style="font-size:11px;color:#aaa">${e.note}</span>`:''}</td>
+        <td><span class="exp-cat-badge tag-pink">${e.cat}</span></td>
+        <td style="font-weight:600">${e.currency} ${e.amount.toLocaleString()}</td>
+        <td style="font-size:12px;color:var(--muted)">₩${toKRW(e.amount,e.currency).toLocaleString()}</td>
+        <td><div class="exp-actions">
+          <button class="icon-btn icon-btn-edit" onclick="editExpense('${e.id}')">✏️</button>
+          <button class="icon-btn icon-btn-del" onclick="deleteExpense('${e.id}')">🗑️</button>
+        </div></td>
+      </tr>`).join('')}
+      <tr class="exp-total-row"><td colspan="2">💴 합계</td>
+        <td colspan="2">₩ ${totalKRW.toLocaleString()} · AED ${totalAED}</td><td></td></tr>
+      </tbody></table>`;
+  } else {
+    el.innerHTML += `<div class="empty-state"><div class="es-emoji">💴</div><p>아직 지출 내역이 없어요</p></div>`;
+  }
+  el.innerHTML += `<div class="flex-gap mt-16"><button class="btn btn-primary" onclick="openExpenseModal()">＋ 지출 추가</button></div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px">💡 환율: 1 AED ≈ ₩370 · 1 JPY ≈ ₩9.3 (참고용)</div>`;
+}
+
+// ── TRIP MODAL ──
+window.openTripModal = function(){
+  editingId = null;
+  document.getElementById('modal-trip-title').textContent = '새 여행 추가 ✈️';
+  ['ti-name','ti-country','ti-date','ti-tags'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ti-status').value='plan';
+  document.getElementById('ti-color').value='linear-gradient(135deg,#fde8d0,#f9c784)';
+  renderEmojiPicker('trip-emoji-picker', '🗾');
+  openModal('modal-trip');
 };
 
-renderRoute();
-renderExpenses();
+window.editTrip = function(id){
+  editingId = id;
+  const t = DB.trips.find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('modal-trip-title').textContent = '여행 수정 ✏️';
+  document.getElementById('ti-name').value = t.name;
+  document.getElementById('ti-country').value = t.country;
+  document.getElementById('ti-date').value = t.date;
+  document.getElementById('ti-status').value = t.status;
+  document.getElementById('ti-tags').value = t.tags.join(', ');
+  document.getElementById('ti-color').value = t.color;
+  renderEmojiPicker('trip-emoji-picker', t.emoji);
+  openModal('modal-trip');
+};
+
+window.saveTrip = function(){
+  const name = document.getElementById('ti-name').value.trim();
+  if(!name){ alert('여행 이름을 입력해주세요!'); return; }
+  const data = {
+    name, country:document.getElementById('ti-country').value.trim()||'미정',
+    date:document.getElementById('ti-date').value.trim()||'날짜 미정',
+    emoji:document.querySelector('.ep-btn.selected')?.textContent||'✈️',
+    color:document.getElementById('ti-color').value,
+    status:document.getElementById('ti-status').value,
+    tags:document.getElementById('ti-tags').value.split(',').map(t=>t.trim()).filter(Boolean)
+  };
+  if(editingId){
+    const t = DB.trips.find(x=>x.id===editingId);
+    Object.assign(t, data);
+  } else {
+    DB.trips.push({id:uid(),...data,stops:[],diary:[],expenses:[],photos:[]});
+  }
+  save(); closeModal('modal-trip'); renderTrips(); renderHome();
+};
+
+window.deleteTrip = function(id){
+  if(!confirm('이 여행을 삭제할까요?')) return;
+  DB.trips = DB.trips.filter(t=>t.id!==id);
+  save(); renderTrips(); renderHome();
+};
+
+// ── DIARY MODAL ──
+window.openDiaryModal = function(){
+  editingId = null;
+  document.getElementById('modal-diary-title').textContent = '일기 쓰기 📖';
+  document.getElementById('di-date').value='';
+  document.getElementById('di-title').value='';
+  document.getElementById('di-body').value='';
+  document.getElementById('di-mood').value='';
+  openModal('modal-diary');
+};
+window.editDiary = function(id){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  const d = trip?.diary.find(x=>x.id===id);
+  if(!d) return;
+  editingId = id;
+  document.getElementById('modal-diary-title').textContent = '일기 수정 ✏️';
+  document.getElementById('di-date').value=d.date;
+  document.getElementById('di-title').value=d.title;
+  document.getElementById('di-body').value=d.body;
+  document.getElementById('di-mood').value=d.mood;
+  openModal('modal-diary');
+};
+window.saveDiary = function(){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  if(!trip) return;
+  const data = {
+    date:document.getElementById('di-date').value||new Date().toLocaleDateString('ko-KR'),
+    title:document.getElementById('di-title').value.trim()||'오늘의 기록',
+    body:document.getElementById('di-body').value.trim(),
+    mood:document.getElementById('di-mood').value.trim()||'💕'
+  };
+  if(editingId){ const d=trip.diary.find(x=>x.id===editingId); Object.assign(d,data); }
+  else { trip.diary.push({id:uid(),...data}); }
+  save(); closeModal('modal-diary'); renderDiary(trip);
+};
+window.deleteDiary = function(id){
+  if(!confirm('일기를 삭제할까요?')) return;
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  trip.diary = trip.diary.filter(x=>x.id!==id);
+  save(); renderDiary(trip);
+};
+
+// ── EXPENSE MODAL ──
+window.openExpenseModal = function(){
+  editingId = null;
+  document.getElementById('modal-expense-title').textContent = '지출 추가 💴';
+  ['ex-name','ex-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ex-amount').value='';
+  document.getElementById('ex-currency').value='AED';
+  openModal('modal-expense');
+};
+window.editExpense = function(id){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  const e = trip?.expenses.find(x=>x.id===id);
+  if(!e) return;
+  editingId = id;
+  document.getElementById('modal-expense-title').textContent = '지출 수정 ✏️';
+  document.getElementById('ex-name').value=e.name;
+  document.getElementById('ex-amount').value=e.amount;
+  document.getElementById('ex-currency').value=e.currency;
+  document.getElementById('ex-cat').value=e.cat;
+  document.getElementById('ex-note').value=e.note||'';
+  openModal('modal-expense');
+};
+window.saveExpense = function(){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  if(!trip) return;
+  const amount = parseFloat(document.getElementById('ex-amount').value)||0;
+  const data = {
+    name:document.getElementById('ex-name').value.trim()||'지출',
+    amount, currency:document.getElementById('ex-currency').value,
+    cat:document.getElementById('ex-cat').value,
+    note:document.getElementById('ex-note').value.trim()
+  };
+  if(editingId){ const e=trip.expenses.find(x=>x.id===editingId); Object.assign(e,data); }
+  else { trip.expenses.push({id:uid(),...data}); }
+  save(); closeModal('modal-expense'); renderExpenses(trip);
+};
+window.deleteExpense = function(id){
+  if(!confirm('지출 항목을 삭제할까요?')) return;
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  trip.expenses = trip.expenses.filter(x=>x.id!==id);
+  save(); renderExpenses(trip);
+};
+
+// ── STOP MODAL ──
+window.openStopModal = function(){
+  editingId = null;
+  document.getElementById('modal-stop-title').textContent = '장소 추가 📍';
+  ['st-name','st-time','st-transport','st-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('st-icon').value='📍';
+  ['st-todo','st-buy','st-eat'].forEach(id=>document.getElementById(id).value='');
+  openModal('modal-stop');
+};
+window.editStop = function(id){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  const s = trip?.stops.find(x=>x.id===id);
+  if(!s) return;
+  editingId = id;
+  document.getElementById('modal-stop-title').textContent = '장소 수정 ✏️';
+  document.getElementById('st-name').value=s.name;
+  document.getElementById('st-icon').value=s.icon;
+  document.getElementById('st-time').value=s.time||'';
+  document.getElementById('st-cat').value=s.cat;
+  document.getElementById('st-transport').value=s.transport||'';
+  document.getElementById('st-todo').value=(s.todo||[]).join('\n');
+  document.getElementById('st-buy').value=(s.buy||[]).join('\n');
+  document.getElementById('st-eat').value=(s.eat||[]).join('\n');
+  document.getElementById('st-note').value=s.note||'';
+  openModal('modal-stop');
+};
+window.saveStop = function(){
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  if(!trip) return;
+  const lines = id => document.getElementById(id).value.split('\n').map(l=>l.trim()).filter(Boolean);
+  const data = {
+    name:document.getElementById('st-name').value.trim()||'장소',
+    icon:document.getElementById('st-icon').value.trim()||'📍',
+    time:document.getElementById('st-time').value.trim(),
+    cat:document.getElementById('st-cat').value,
+    transport:document.getElementById('st-transport').value.trim(),
+    todo:lines('st-todo'), buy:lines('st-buy'), eat:lines('st-eat'),
+    note:document.getElementById('st-note').value.trim()
+  };
+  if(editingId){ const s=trip.stops.find(x=>x.id===editingId); Object.assign(s,data); }
+  else { trip.stops.push({id:uid(),...data}); }
+  save(); closeModal('modal-stop'); renderRoute(trip);
+};
+window.deleteStop = function(id){
+  if(!confirm('이 장소를 삭제할까요?')) return;
+  const trip = DB.trips.find(t=>t.id===currentTripId);
+  trip.stops = trip.stops.filter(x=>x.id!==id);
+  save(); renderRoute(trip);
+};
+
+// ── SETTINGS ──
+window.saveSettings = function(){
+  DB.settings.name1 = document.getElementById('set-name1').value.trim()||'My Love';
+  DB.settings.name2 = document.getElementById('set-name2').value.trim()||'Me';
+  DB.settings.bucketlist = document.getElementById('set-bucketlist').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  save(); renderHome(); alert('저장됐어요 💕');
+};
+window.resetAll = function(){
+  if(!confirm('정말 전체 초기화할까요? 되돌릴 수 없어요!')) return;
+  localStorage.removeItem('travelbook');
+  location.reload();
+};
+function loadSettings(){
+  document.getElementById('set-name1').value=DB.settings.name1;
+  document.getElementById('set-name2').value=DB.settings.name2;
+  document.getElementById('set-bucketlist').value=DB.settings.bucketlist.join('\n');
+}
+
+// ── EMOJI PICKER ──
+function renderEmojiPicker(containerId, selected){
+  const c = document.getElementById(containerId);
+  c.innerHTML = EMOJIS.map(e=>`<button class="ep-btn ${e===selected?'selected':''}" onclick="selectEmoji(this,'${containerId}')" type="button">${e}</button>`).join('');
+}
+window.selectEmoji = function(btn, containerId){
+  document.querySelectorAll(`#${containerId} .ep-btn`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+};
+
+// ── MODAL UTILS ──
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+window.closeModal = function(id){ document.getElementById(id).classList.remove('open'); };
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// ── INIT ──
+load();
+renderHome();
+renderTrips();
+loadSettings();
+renderEmojiPicker('trip-emoji-picker','🗾');
 </script>
 </body>
 </html>
