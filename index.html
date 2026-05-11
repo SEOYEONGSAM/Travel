@@ -559,7 +559,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
       <div class="home-title" id="home-title">Our Story</div>
       <div class="home-names" id="home-names">서영 & 성민 💕</div>
     </div>
-    <button class="btn btn-subtle btn-sm" onclick="openModal('modal-event')">+ 일정</button>
+    <button class="btn btn-subtle btn-sm" onclick="openEventModal()">+ 일정</button>
   </div>
   <div id="dday-strip"></div>
   <div class="cal-card">
@@ -1289,25 +1289,42 @@ function renderHomeCal(){
 window.selectDay=function(k,day){
   selectedDay=k;
   renderHomeCal();
-  const allEvents=[
-    ...DB.trips.filter(t=>t.startDate&&t.startDate<=k&&(t.endDate||t.startDate)>=k).map(t=>({name:t.name,meta:'여행',color:EVENT_COLORS.travel[0],action:`openTrip('${t.id}')`})),
-    ...DB.events.filter(e=>e.startDate<=k&&(e.endDate||e.startDate)>=k).map(e=>({name:e.name,meta:e.note||'',color:EVENT_COLORS[e.type][0],action:''}))
-  ];
+
+  const tripEvents=DB.trips
+    .filter(t=>t.startDate&&t.startDate<=k&&(t.endDate||t.startDate)>=k)
+    .map(t=>({kind:'trip',id:t.id,name:t.name,meta:'여행',color:EVENT_COLORS.travel[0],action:`openTrip('${t.id}')`}));
+
+  const calendarEvents=DB.events
+    .filter(e=>e.startDate<=k&&(e.endDate||e.startDate)>=k)
+    .map(e=>({kind:'event',id:e.id,name:e.name,meta:e.note||'',color:(EVENT_COLORS[e.type]||EVENT_COLORS.memo)[0]}));
+
+  const allEvents=[...tripEvents,...calendarEvents];
   const diaryEntries=DB.diary.filter(d=>d.dateKey===k);
   const panel=document.getElementById('home-day-panel');
   if(!allEvents.length&&!diaryEntries.length){panel.innerHTML='';return;}
-  const months=['1','2','3','4','5','6','7','8','9','10','11','12'];
+
   const parts=k.split('-');
   const dateStr=`${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일`;
   let html=`<div class="day-panel"><div class="day-panel-date">${dateStr}</div>`;
+
   allEvents.forEach(ev=>{
-    html+=`<div class="day-event-item" ${ev.action?`onclick="${ev.action}"`:''}> 
+    html+=`<div class="day-event-item" ${ev.kind==='trip'?`onclick="${ev.action}"`:''}> 
       <div class="day-event-color" style="background:${ev.color}"></div>
       <div class="day-event-info"><div class="day-event-name">${ev.name}</div>
-        ${ev.meta?`<div class="day-event-meta">${ev.meta}</div>`:''}</div>
-      ${ev.action?'<span style="color:var(--muted);font-size:12px">→</span>':''}
-    </div>`;
+        ${ev.meta?`<div class="day-event-meta">${ev.meta}</div>`:''}</div>`;
+
+    if(ev.kind==='event'){
+      html+=`<div style="display:flex;gap:4px">
+        <button class="icon-btn" style="width:24px;height:24px;font-size:10px" onclick="event.stopPropagation();openEventModal('${ev.id}')">✏️</button>
+        <button class="icon-btn icon-btn-del" style="width:24px;height:24px;font-size:10px" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️</button>
+      </div>`;
+    }else{
+      html+=`<span style="color:var(--muted);font-size:12px">→</span>`;
+    }
+
+    html+=`</div>`;
   });
+
   diaryEntries.forEach(d=>{
     html+=`<div class="day-event-item" onclick="goPage('diary',document.getElementById('nav-diary'));renderGlobalDiary('${d.dateKey}')">
       <div class="day-event-color" style="background:${d.writer==='partner'?'#9b8bc4':'var(--rose)'}"></div>
@@ -1336,16 +1353,59 @@ function renderUpcoming(){
 }
 
 // Calendar event modal
+window.openEventModal=function(id=null){
+  editId=id;
+  const titleEl=document.querySelector('#modal-event .modal-title');
+  if(id){
+    const ev=DB.events.find(x=>x.id===id);
+    if(!ev)return;
+    if(titleEl)titleEl.textContent='일정 수정 📅';
+    document.getElementById('ev-type').value=ev.type||'memo';
+    document.getElementById('ev-name').value=ev.name||'';
+    document.getElementById('ev-start').value=ev.startDate||'';
+    document.getElementById('ev-end').value=ev.endDate||ev.startDate||'';
+    document.getElementById('ev-note').value=ev.note||'';
+  }else{
+    if(titleEl)titleEl.textContent='일정 추가 📅';
+    document.getElementById('ev-type').value='memo';
+    document.getElementById('ev-name').value='';
+    document.getElementById('ev-start').value=selectedDay||'';
+    document.getElementById('ev-end').value=selectedDay||'';
+    document.getElementById('ev-note').value='';
+  }
+  openModal('modal-event');
+};
+
+window.deleteEvent=function(id){
+  const ev=DB.events.find(x=>x.id===id);
+  if(!ev)return;
+  if(!confirm(`'${ev.name}' 일정을 삭제할까요?`))return;
+  DB.events=DB.events.filter(x=>x.id!==id);
+  save();
+  renderHome();
+  if(selectedDay)selectDay(selectedDay);
+};
+
 window.saveEvent=function(){
-  const data={id:uid(),type:document.getElementById('ev-type').value,
+  const data={
+    type:document.getElementById('ev-type').value,
     name:document.getElementById('ev-name').value.trim(),
     startDate:document.getElementById('ev-start').value,
     endDate:document.getElementById('ev-end').value||document.getElementById('ev-start').value,
-    note:document.getElementById('ev-note').value.trim()};
+    note:document.getElementById('ev-note').value.trim()
+  };
   if(!data.name||!data.startDate){alert('이름과 날짜를 입력해주세요!');return;}
-  if(editId){const ev=DB.events.find(x=>x.id===editId);Object.assign(ev,data);}
-  else DB.events.push(data);
-  save();closeModal('modal-event');renderHome();
+  if(editId){
+    const ev=DB.events.find(x=>x.id===editId);
+    if(ev)Object.assign(ev,data);
+  }else{
+    DB.events.push({id:uid(),...data});
+  }
+  editId=null;
+  save();
+  closeModal('modal-event');
+  renderHome();
+  if(selectedDay)selectDay(selectedDay);
 };
 
 // ════════════════════════════════════════════
@@ -2339,7 +2399,7 @@ window.selEP=function(btn,cid){document.querySelectorAll('#'+cid+' .ep-btn').for
 // MODAL UTILS
 // ════════════════════════════════════════════
 function openModal(id){document.getElementById(id).classList.add('open');}
-window.closeModal=function(id){if(id==='modal-date')editDateTabKey=null;document.getElementById(id).classList.remove('open');};
+window.closeModal=function(id){if(id==='modal-date')editDateTabKey=null;if(id==='modal-event')editId=null;document.getElementById(id).classList.remove('open');};
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
 // Swipe down to close
 document.querySelectorAll('.modal').forEach(m=>{
