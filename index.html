@@ -1674,9 +1674,9 @@ function renderRoute(trip){
       stops.forEach((s,i)=>{
         const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
         let b='';
-        if(s.todo?.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${s.todo.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.buy?.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${s.buy.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.eat?.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${s.eat.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.todo?.length){b+=`<div class="dg-lbl">✅ 할 것</div><ul class="cl-sm">${s.todo.map((x,i)=>`<li class="${(s.checked?.todo||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','todo',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+if(s.buy?.length){b+=`<div class="dg-lbl">🛍️ 살 것</div><ul class="cl-sm">${s.buy.map((x,i)=>`<li class="${(s.checked?.buy||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','buy',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+if(s.eat?.length){b+=`<div class="dg-lbl">🍽️ 먹을 것</div><ul class="cl-sm">${s.eat.map((x,i)=>`<li class="${(s.checked?.eat||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','eat',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
@@ -1903,6 +1903,15 @@ window.saveStop=function(){
   if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s)Object.assign(s,data);});}
   else { const newId=uid(); trip.stops[curDK].push({id:newId,...data}); window.openRouteCards.add(newId); }
   save();closeModal('modal-stop');renderRoute(trip);
+};
+   window.toggleStopCheck=function(sid,type,idx,el){
+  const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
+  const stop=Object.values(trip.stops).flat().find(s=>s.id===sid);if(!stop)return;
+  if(!stop.checked)stop.checked={todo:[],buy:[],eat:[]};
+  const arr=stop.checked[type];
+  const pos=arr.indexOf(idx);
+  if(pos===-1)arr.push(idx);else arr.splice(pos,1);
+  el.classList.toggle('done');save();
 };
 window.deleteStop=function(id){if(!confirm('삭제?'))return;const trip=DB.trips.find(t=>t.id===CTI);Object.keys(trip.stops).forEach(k=>{trip.stops[k]=trip.stops[k].filter(s=>s.id!==id);});save();renderRoute(trip);};
 
