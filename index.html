@@ -775,8 +775,8 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
     <div class="fg"><label>이동 시간</label><input type="text" id="st-duration" placeholder="약 5분"/></div>
   </div>
   <div class="fg"><label>할 것 (줄바꿈)</label><textarea id="st-todo" rows="3" placeholder="체크인 완료&#10;짐 정리"></textarea></div>
-  <div class="fg"><label>살 것 (줄바꿈)</label><textarea id="st-buy" rows="3" placeholder="마나 주걱&#10;카메노코 스펀지"></textarea></div>
-  <div class="fg"><label>먹을 것 (줄바꿈)</label><textarea id="st-eat" rows="2" placeholder="타코야끼"></textarea></div>
+  <div class="fg"><label>🛍️ 쇼핑리스트</label><textarea id="st-buy" rows="3" placeholder="마나 주걱&#10;카메노코 스펀지"></textarea></div>
+  <div class="fg"><label>🍴 먹고 마시기</label><textarea id="st-eat" rows="2" placeholder="타코야끼"></textarea></div>
   <div class="fg"><label>💡 팁 메모</label><input type="text" id="st-note" placeholder="면세는 5,000엔 이상!"/></div>
   <div class="modal-actions">
     <button class="btn btn-ghost" onclick="closeModal('modal-stop')">취소</button>
@@ -1684,6 +1684,29 @@ window.saveBulkRoute=function(){
 };
 
 window.openStopModal=function(){editId=null;document.getElementById('ms-title').textContent='장소 추가 📍';['st-name','st-time','st-from','st-transport','st-duration','st-note'].forEach(i=>document.getElementById(i).value='');document.getElementById('st-icon').value='📍';['st-todo','st-buy','st-eat'].forEach(i=>document.getElementById(i).value='');openModal('modal-stop');};
+
+window.openRouteCards = new Set();
+
+window.toggleRouteCard=function(id){
+  if(window.openRouteCards.has(id)){
+    window.openRouteCards.delete(id);
+  }else{
+    window.openRouteCards.add(id);
+  }
+  const t=DB.trips.find(x=>x.id===CTI);
+  if(t)renderTripDetail(t);
+};
+
+window.saveRouteReview=function(id,val){
+  const trip=DB.trips.find(t=>t.id===CTI);
+  if(!trip)return;
+
+  Object.values(trip.stops||{}).flat().forEach(s=>{
+    if(s.id===id)s.review=val;
+  });
+
+  save();
+};
 window.editStop=function(id){
   const trip=DB.trips.find(t=>t.id===CTI);let s=null;
   Object.values(trip.stops||{}).forEach(arr=>{const f=arr.find(x=>x.id===id);if(f)s=f;});
