@@ -391,6 +391,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 .person-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
 .pb-me{background:#fde8ee;color:var(--rose)}
 .pb-partner{background:#eee8f8;color:#6050a0}
+.pb-split{background:#e8f8e8;color:#3a7a3a}
 .pay-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px}
 .pay-card{background:#e0eefc;color:#3a6090}
 .pay-cash{background:#e8f8e8;color:#3a7a3a}
@@ -955,19 +956,21 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 <script>
 // ════════════════════════════════════════════
 // FIREBASE SYNC CONFIG
-// 1) Firebase Console에서 Web app을 만든 뒤 아래 firebaseConfig 값을 교체하세요.
+// ⚠️  보안 주의: 이 파일을 GitHub / 공개 URL에 올리지 마세요.
+//     아래 값은 본인만 볼 수 있는 기기/서버에서만 사용하세요.
+// 1) Firebase Console에서 Web app을 만든 뒤 아래 PASTE_... 값을 교체하세요.
 // 2) Firestore Database를 만들고 Rules를 test mode 또는 허용 규칙으로 설정하세요.
 // 3) 값이 PASTE_... 상태면 기존처럼 localStorage만 사용합니다.
 // ════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyCdpjw9aa2rgZVtkfgbn6NBNSI_NwU4StQ",
-  authDomain: "our--trip.firebaseapp.com",
-  projectId: "our--trip",
-  storageBucket: "our--trip.firebasestorage.app",
-  messagingSenderId: "854233693888",
-  appId: "1:854233693888:web:d2d16dc4520f89440fb725"
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
 };
-const COUPLE_ROOM_ID = "seoyeong-sungmin-travel";
+const COUPLE_ROOM_ID = "PASTE_YOUR_ROOM_ID"; // 예: "seoyeong-sungmin-travel"
 
 // ════════════════════════════════════════════
 // STATE & CONSTANTS
@@ -1023,8 +1026,27 @@ function isFirebaseConfigured(){
 }
 
 function saveLocalOnly(){
-  try{localStorage.setItem('tb5',JSON.stringify(DB));}
-  catch(e){alert('저장 공간 부족! 백업 후 데이터를 정리해주세요.');}
+  try{
+    localStorage.setItem('tb5',JSON.stringify(DB));
+  }catch(e){
+    // 용량 초과 시: Base64 사진 데이터만 제거하고 재시도
+    try{
+      const slim=JSON.parse(JSON.stringify(DB));
+      slim.trips.forEach(t=>{
+        if(t.photos){
+          Object.keys(t.photos).forEach(k=>{
+            t.photos[k]=(t.photos[k]||[]).map(p=>({...p,data:''}));
+          });
+        }
+      });
+      slim.diary.forEach(d=>{if(d.photos)d.photos=[];});
+      localStorage.setItem('tb5',JSON.stringify(slim));
+      console.warn('저장 공간 부족으로 사진 데이터를 제외하고 저장했어요.');
+      alert('⚠️ 저장 공간이 부족해요!\n사진 데이터를 제외한 나머지(여행·지출·일기)는 저장됐어요.\n사진은 Google Drive 링크 방식을 추천해요 💕');
+    }catch(e2){
+      alert('저장 공간이 완전히 부족해요! 백업 후 초기화해주세요.');
+    }
+  }
 }
 
 function save(){
@@ -1047,12 +1069,33 @@ function load(){
 }
 
 
+// dateKey가 없는 구형 지출 데이터를 정규화할 때 사용
+function normalizeExpenseDate(e){
+  // 기존에 date 필드가 있으면 그걸 사용, 없으면 오늘 날짜
+  if(e.date && /^\d{4}-\d{2}-\d{2}$/.test(e.date)) return e.date;
+  if(e.dateLabel){
+    // "5월 23일" 형태 → 올해 연도 붙여서 키로 변환 시도
+    const m=e.dateLabel.match(/(\d+)월\s*(\d+)일/);
+    if(m){
+      const y=new Date().getFullYear();
+      return `${y}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+    }
+  }
+  const t=new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
+function formatExpenseDate(dateKey){
+  if(!dateKey) return '';
+  const m=dateKey.match(/^\d{4}-(\d{2})-(\d{2})$/);
+  if(m) return `${Number(m[1])}월 ${Number(m[2])}일`;
+  return dateKey;
+}
 function normalizeExistingExpenseDates(){
   if(!DB || !DB.expenses) return;
   DB.expenses.forEach(e=>{
     if(!e.dateKey){
       e.dateKey = normalizeExpenseDate(e);
-      e.date = e.date || formatExpenseDate(e.dateKey);
+      e.dateLabel = e.dateLabel || formatExpenseDate(e.dateKey);
     }
   });
 }
@@ -1244,7 +1287,11 @@ function renderDday(){
   const future=planned.filter(t=>t.startDate).sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   if(!future.length){strip.innerHTML='';return;}
   const next=future[0];
-  const diff=Math.ceil((new Date(next.startDate)-new Date())/(1000*60*60*24));
+  // "YYYY-MM-DD" 파싱 시 UTC 자정이 아닌 로컬 자정으로 처리 (UAE UTC+4 오차 방지)
+  const [y,mo,d]=next.startDate.split('-').map(Number);
+  const targetDate=new Date(y,mo-1,d); // 로컬 자정
+  const todayDate=new Date();todayDate.setHours(0,0,0,0);
+  const diff=Math.ceil((targetDate-todayDate)/(1000*60*60*24));
   strip.innerHTML=`<div class="dday-strip">
     <div><div class="dday-label">다음 여행까지</div><div class="dday-trip">${next.name}</div></div>
     <div style="text-align:right"><div class="dday-label">D-</div><div class="dday-num">${Math.max(0,diff)}</div></div>
@@ -1995,20 +2042,22 @@ function expenseShareLabel(e){
 function expensePayerLabel(e){
   const n1=DB.settings.name1,n2=DB.settings.name2;
   if(e.payer==='partner')return n2;
-  if(e.payer==='split')return '반반';
+  if(e.payer==='split')return '각자';
   return n1;
 }
 function calcExpenseOwe(e){
   // +면 partner가 me에게 줘야 함, -면 me가 partner에게 줘야 함
   const amt=Number(e.amount)||0;
-  const payer=e.payer==='partner'?'partner':'me';
+  // payer:'split' = 둘이 각자 냄 → 정산 필요 없음
+  const payer=e.payer==='partner'?'partner':(e.payer==='split'?'split':'me');
   const share=e.shareType || (e.payer==='split'?'split':'split');
   let meShare=0, partnerShare=0;
   if(share==='me'){meShare=amt;partnerShare=0;}
   else if(share==='partner'){meShare=0;partnerShare=amt;}
   else {meShare=amt/2;partnerShare=amt/2;}
   if(payer==='me') return partnerShare;
-  return -meShare;
+  if(payer==='partner') return -meShare;
+  return 0; // split 결제 → 이미 각자 냈으므로 정산 없음
 }
 function expSummaryHTML(exps){
   const byPerson={me:0,partner:0};
@@ -2027,11 +2076,14 @@ function expSummaryHTML(exps){
   const totalK=Object.values(byPerson).reduce((a,b)=>a+b,0);
 
   let settleRows='';
+  // 통화별 소수점 자릿수: AED·USD·EUR·CZK·THB → 2자리, JPY·KRW → 0자리
+  const decimalCurs=new Set(['AED','USD','EUR','CZK','THB']);
   Object.entries(byCur).forEach(([cur,v])=>{
     const diff=v.unsettledOwe;
+    const decimals=decimalCurs.has(cur)?2:0;
     const n1=DB.settings.name1,n2=DB.settings.name2;
-    const txt=diff>0?`${n2} → ${n1} ${Math.abs(diff).toFixed(0)} ${cur}`:
-              diff<0?`${n1} → ${n2} ${Math.abs(diff).toFixed(0)} ${cur}`:
+    const txt=diff>0?`${n2} → ${n1} ${Math.abs(diff).toFixed(decimals)} ${cur}`:
+              diff<0?`${n1} → ${n2} ${Math.abs(diff).toFixed(decimals)} ${cur}`:
               '미정산 없음 ✅';
     settleRows+=`<div class="settle-row">
       <span class="settle-person">${cur}</span>
@@ -2070,18 +2122,18 @@ function expTableHTML(exps){
       <div class="eth">날짜</div><div class="eth">항목</div><div class="eth">결제</div>
       <div class="eth">부담</div><div class="eth">금액</div><div class="eth">상태</div><div class="eth"></div>
     </div>
-    ${exps.map(e=>`<div class="exp-table-row" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px">
+    ${exps.map(e=>{const dec=new Set(['AED','USD','EUR','CZK','THB']).has(e.currency)?2:0;return`<div class="exp-table-row" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px">
       <div class="etd-muted">${e.dateLabel||'-'}</div>
       <div><div class="etd">${e.name}</div>${e.note?`<div class="etd-muted">${e.note}</div>`:''}<span class="pay-badge ${e.method==='card'?'pay-card':'pay-cash'}">${e.method==='card'?'💳':'💵'}</span></div>
-      <div><span class="person-badge ${e.payer==='partner'?'pb-partner':'pb-me'}">${expensePayerLabel(e)}</span></div>
+      <div><span class="person-badge ${e.payer==='partner'?'pb-partner':(e.payer==='split'?'pb-split':'pb-me')}">${expensePayerLabel(e)}</span></div>
       <div class="etd-muted">${expenseShareLabel(e)}</div>
-      <div><div class="etd">${e.currency} ${Number(e.amount).toLocaleString()}</div><div class="etd-muted">₩${toK(e.amount,e.currency).toLocaleString()}</div></div>
+      <div><div class="etd">${e.currency} ${Number(e.amount).toFixed(dec)}</div><div class="etd-muted">₩${toK(e.amount,e.currency).toLocaleString()}</div></div>
       <div><button class="btn ${e.settled?'btn-subtle':'btn-ghost'} btn-sm" style="padding:4px 8px;font-size:10px" onclick="toggleExpenseSettled('${e.id}')">${e.settled?'✅ 완료':'🟡 미정산'}</button></div>
       <div style="display:flex;gap:3px">
         <button class="icon-btn" style="width:24px;height:24px;font-size:11px" onclick="editExpense('${e.id}')">✏️</button>
         <button class="icon-btn icon-btn-del" style="width:24px;height:24px;font-size:11px" onclick="deleteExpense('${e.id}')">🗑️</button>
       </div>
-    </div>`).join('')}
+    </div>`}).join('')}
     <div class="exp-total-row" style="grid-template-columns:1fr 1.5fr 1fr 1fr 1fr 1fr 55px"><div class="etd">합계</div><div></div><div></div><div></div><div class="etd">₩${total.toLocaleString()}</div><div></div><div></div></div>
   </div>`;
 }
@@ -2192,7 +2244,7 @@ window.saveExpense=function(){
     dateKey,
     tripId,
     name:document.getElementById('ex-name').value.trim()||'지출',
-    amount:parseFloat(document.getElementById('ex-amount').value)||0,
+    amount:Number((parseFloat(document.getElementById('ex-amount').value)||0).toFixed(2)),
     currency:document.getElementById('ex-currency').value,
     payer:document.getElementById('ex-payer').value,
     shareType:document.getElementById('ex-share').value,
