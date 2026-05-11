@@ -419,6 +419,22 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 .photo-tape{position:absolute;top:-4px;left:50%;transform:translateX(-50%);
   width:30px;height:10px;border-radius:2px;opacity:.7}
 .photo-date-group{margin-bottom:20px}
+/* ═══════════════════════════════════════════
+   BLOG EXPORT MODAL
+═══════════════════════════════════════════ */
+.blog-modal-body{display:flex;flex-direction:column;gap:10px}
+.blog-option-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--warm);border-radius:10px;border:1px solid var(--subtle)}
+.blog-option-label{font-size:13px;font-weight:600;color:var(--brown)}
+.blog-option-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.blog-preview{width:100%;min-height:180px;max-height:320px;overflow-y:auto;
+  border:1.5px solid var(--subtle);border-radius:10px;padding:12px;
+  font-size:12px;line-height:1.7;background:var(--white);color:var(--ink);
+  font-family:monospace;white-space:pre-wrap;resize:vertical;outline:none}
+.blog-preview:focus{border-color:var(--rose)}
+.blog-copy-done{color:#3a7a3a;font-size:12px;font-weight:600;text-align:center;
+  display:none;padding:6px;background:#e8f8e8;border-radius:8px}
+
 .photo-date-hdr{font-family:var(--font-display);font-size:17px;color:var(--brown);font-style:italic;
   margin-bottom:9px;display:flex;align-items:center;gap:8px}
 .photo-date-hdr::after{content:'';flex:1;height:1px;background:var(--subtle)}
@@ -947,6 +963,43 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   <div class="modal-actions">
     <button class="btn btn-ghost" onclick="closeModal('modal-cat')">취소</button>
     <button class="btn btn-primary" onclick="saveCat()">추가 💕</button>
+  </div>
+</div></div>
+
+<!-- Blog Export Modal -->
+<div class="modal-overlay" id="modal-blog-export"><div class="modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">📝 블로그 글 만들기</div>
+  <div class="blog-modal-body">
+    <div class="blog-option-row">
+      <div>
+        <div class="blog-option-label">포함할 내용</div>
+        <div class="blog-option-sub">원하는 항목만 체크하세요</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="bex-route" checked style="accent-color:var(--rose)"/> 🗺️ 동선
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="bex-diary" checked style="accent-color:var(--rose)"/> 📖 일기
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="bex-expense" checked style="accent-color:var(--rose)"/> 💴 지출 요약
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="bex-checklist" checked style="accent-color:var(--rose)"/> ✅ 준비물
+      </label>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-subtle btn-sm" onclick="generateBlogHTML()">🔄 미리보기 생성</button>
+      <button class="btn btn-primary btn-sm" onclick="copyBlogHTML()">📋 HTML 복사</button>
+    </div>
+    <div class="blog-copy-done" id="blog-copy-done">✅ 복사됐어요! Tistory / Naver 에 바로 붙여넣기하세요 💕</div>
+    <textarea class="blog-preview" id="blog-preview" readonly placeholder="위 버튼을 눌러 미리보기를 생성하세요..."></textarea>
+  </div>
+  <div class="modal-actions" style="margin-top:8px">
+    <button class="btn btn-ghost" onclick="closeModal('modal-blog-export')">닫기</button>
   </div>
 </div></div>
 
@@ -1499,6 +1552,9 @@ function renderTripDetail(trip){
       <div class="tdh-name">${trip.name}</div>
       <div class="tdh-meta">${trip.country} · ${trip.date}</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center">${trip.tags.map(t=>`<span class="badge badge-pink">${t}</span>`).join('')}</div>
+      <div style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" onclick="openBlogExport('${trip.id}')">📝 블로그 글 만들기</button>
+      </div>
     </div>
     <div class="sub-tabs">${tabs.map(t=>`<button class="stab ${t.id===curSub?'active':''}" onclick="switchSub('${t.id}',this)">${t.l}</button>`).join('')}</div>
     <div id="sub-pretip" class="sub-page ${curSub==='pretip'?'active':''}"></div>
@@ -2022,6 +2078,197 @@ window.saveDiary=function(){
   else renderGlobalDiary();
 };
 window.deleteDiary=function(id){if(!confirm('삭제?'))return;DB.diary=DB.diary.filter(x=>x.id!==id);save();renderGlobalDiary();};
+
+// ════════════════════════════════════════════
+// BLOG EXPORT
+// ════════════════════════════════════════════
+let blogExportTripId = null;
+
+window.openBlogExport = function(tripId){
+  blogExportTripId = tripId;
+  document.getElementById('blog-preview').value = '';
+  document.getElementById('blog-copy-done').style.display = 'none';
+  openModal('modal-blog-export');
+  // 열자마자 바로 생성
+  generateBlogHTML();
+};
+
+window.generateBlogHTML = function(){
+  const trip = DB.trips.find(t => t.id === blogExportTripId);
+  if(!trip){ alert('여행 데이터를 찾을 수 없어요.'); return; }
+
+  const inclRoute    = document.getElementById('bex-route').checked;
+  const inclDiary    = document.getElementById('bex-diary').checked;
+  const inclExpense  = document.getElementById('bex-expense').checked;
+  const inclChecklist= document.getElementById('bex-checklist').checked;
+
+  const n1 = DB.settings.name1;
+  const n2 = DB.settings.name2;
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  // ── 헤더
+  let html = `<div style="max-width:700px;margin:0 auto;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#2d1810;line-height:1.8">
+
+<div style="text-align:center;padding:32px 20px;background:linear-gradient(135deg,#fce4ec,#fdeee4);border-radius:16px;margin-bottom:28px">
+  <div style="font-size:52px;margin-bottom:8px">${trip.emoji}</div>
+  <h1 style="font-size:28px;color:#7a4f3a;margin:0 0 6px">${trip.name}</h1>
+  <p style="color:#9a7a6a;font-size:14px;margin:0">${trip.country} · ${trip.date}</p>
+  <p style="color:#b09080;font-size:12px;margin:8px 0 0">${n1} & ${n2} 💕</p>
+</div>
+`;
+
+  // ── 준비물 체크리스트
+  if(inclChecklist && trip.pretip){
+    const items = (trip.pretip.checklist||[]);
+    if(trip.pretip.freewrite || items.length){
+      html += `<h2 style="color:#e8728a;font-size:18px;border-bottom:2px solid #fce4ec;padding-bottom:6px;margin-bottom:14px">📋 여행 전 메모</h2>\n`;
+      if(trip.pretip.freewrite){
+        html += `<div style="background:#fff8f2;border-left:3px solid #f4a7b9;padding:12px 16px;border-radius:0 8px 8px 0;font-size:14px;white-space:pre-wrap;margin-bottom:12px">${escHtml(trip.pretip.freewrite)}</div>\n`;
+      }
+      if(items.length){
+        html += `<ul style="padding-left:20px;font-size:14px">\n`;
+        items.forEach(it=>{
+          html += `  <li style="margin-bottom:4px${it.done?';color:#aaa;text-decoration:line-through':''}">${escHtml(it.text)}</li>\n`;
+        });
+        html += `</ul>\n`;
+      }
+      html += `<br/>\n`;
+    }
+  }
+
+  // ── 날짜별 동선
+  if(inclRoute && trip.dates && trip.dates.length){
+    html += `<h2 style="color:#e8728a;font-size:18px;border-bottom:2px solid #fce4ec;padding-bottom:6px;margin-bottom:14px">🗺️ 여행 동선</h2>\n`;
+    trip.dates.forEach((d, di)=>{
+      const stops = (trip.stops[d.key]||[]);
+      html += `<h3 style="color:#7a4f3a;font-size:16px;margin:20px 0 10px">Day ${di+1} — ${d.label}</h3>\n`;
+      if(!stops.length){
+        html += `<p style="color:#aaa;font-size:13px">동선 기록 없음</p>\n`;
+      } else {
+        stops.forEach((s, si)=>{
+          html += `<div style="display:flex;gap:12px;margin-bottom:14px;padding:12px 14px;background:#fff8f2;border-radius:10px;border-left:4px solid #f4a7b9">\n`;
+          html += `  <div style="font-size:22px;flex-shrink:0">${s.icon||'📍'}</div>\n`;
+          html += `  <div style="flex:1">\n`;
+          html += `    <div style="font-weight:700;font-size:14px;color:#2d1810">${escHtml(s.name)}${s.time?` <span style="font-size:12px;color:#9a7a6a;font-weight:400">${escHtml(s.time)}</span>`:''}</div>\n`;
+          if(s.from || s.transport){
+            html += `    <div style="font-size:12px;color:#b09080;margin-top:2px">출발지: ${escHtml(s.from||'-')} · ${escHtml(s.transport||'')} ${escHtml(s.duration||'')}</div>\n`;
+          }
+          if(s.todo && s.todo.length){
+            html += `    <div style="font-size:13px;margin-top:6px">✅ ${s.todo.map(t=>escHtml(t)).join(' · ')}</div>\n`;
+          }
+          if(s.buy && s.buy.length){
+            html += `    <div style="font-size:13px;margin-top:4px">🛍️ ${s.buy.map(b=>escHtml(b)).join(' · ')}</div>\n`;
+          }
+          if(s.eat && s.eat.length){
+            html += `    <div style="font-size:13px;margin-top:4px">🍽️ ${s.eat.map(e=>escHtml(e)).join(' · ')}</div>\n`;
+          }
+          if(s.note){
+            html += `    <div style="font-size:12px;margin-top:6px;background:#fce4ec;padding:5px 9px;border-radius:6px;color:#7a4050">💡 ${escHtml(s.note)}</div>\n`;
+          }
+          html += `  </div>\n</div>\n`;
+        });
+      }
+    });
+    html += `<br/>\n`;
+  }
+
+  // ── 일기
+  if(inclDiary){
+    const diaries = DB.diary.filter(d => d.tripId === trip.id);
+    if(diaries.length){
+      html += `<h2 style="color:#e8728a;font-size:18px;border-bottom:2px solid #fce4ec;padding-bottom:6px;margin-bottom:14px">📖 여행 일기</h2>\n`;
+      diaries.forEach(d=>{
+        const isPartner = d.writer === 'partner';
+        html += `<div style="background:${isPartner?'#f8f4ff':'#fff8f2'};border-radius:12px;padding:18px 20px;margin-bottom:14px;border:1px solid ${isPartner?'#d4c5e8':'#fce4ec'}">\n`;
+        html += `  <div style="font-size:11px;font-weight:700;color:${isPartner?'#6050a0':'#e8728a'};margin-bottom:4px">${isPartner?'💜 '+n2:'💕 '+n1}</div>\n`;
+        html += `  <div style="font-size:12px;color:#9a7a6a;margin-bottom:8px">${escHtml(d.dateLabel||'')} ${d.weather||''}</div>\n`;
+        html += `  <div style="font-size:15px;font-weight:700;color:#7a4f3a;margin-bottom:8px">${escHtml(d.title)}</div>\n`;
+        html += `  <div style="font-size:14px;white-space:pre-wrap;color:#5a3828">${escHtml(d.body)}</div>\n`;
+        if(d.mood) html += `  <div style="margin-top:10px;display:inline-block;background:${isPartner?'#eee8f8':'#fce4ec'};padding:3px 12px;border-radius:20px;font-size:12px;color:${isPartner?'#6050a0':'#e8728a'}">${escHtml(d.mood)}</div>\n`;
+        html += `</div>\n`;
+      });
+      html += `<br/>\n`;
+    }
+  }
+
+  // ── 지출 요약
+  if(inclExpense){
+    const exps = DB.expenses.filter(e => e.tripId === trip.id);
+    if(exps.length){
+      const totalK = exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
+      const byPerson = {me:0, partner:0};
+      exps.forEach(e=>{
+        const p = e.payer==='partner'?'partner':'me';
+        byPerson[p] += toK(e.amount, e.currency);
+      });
+      const byCur = {};
+      exps.forEach(e=>{
+        if(!byCur[e.currency]) byCur[e.currency] = 0;
+        byCur[e.currency] += Number(e.amount)||0;
+      });
+
+      html += `<h2 style="color:#e8728a;font-size:18px;border-bottom:2px solid #fce4ec;padding-bottom:6px;margin-bottom:14px">💴 지출 요약</h2>\n`;
+      html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">\n`;
+      html += `  <div style="flex:1;min-width:120px;background:#fff8f2;border:1px solid #fce4ec;border-radius:10px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:700;color:#e8728a">₩${totalK.toLocaleString()}</div><div style="font-size:11px;color:#9a7a6a;margin-top:2px">총 지출 (원화 환산)</div></div>\n`;
+      html += `  <div style="flex:1;min-width:120px;background:#fff8f2;border:1px solid #fce4ec;border-radius:10px;padding:12px;text-align:center"><div style="font-size:15px;font-weight:700;color:#e8728a">${n1}</div><div style="font-size:11px;color:#9a7a6a;margin-top:2px">결제 ₩${byPerson.me.toLocaleString()}</div></div>\n`;
+      html += `  <div style="flex:1;min-width:120px;background:#f8f4ff;border:1px solid #d4c5e8;border-radius:10px;padding:12px;text-align:center"><div style="font-size:15px;font-weight:700;color:#6050a0">${n2}</div><div style="font-size:11px;color:#9a7a6a;margin-top:2px">결제 ₩${byPerson.partner.toLocaleString()}</div></div>\n`;
+      html += `</div>\n`;
+
+      // 통화별 합계
+      const curEntries = Object.entries(byCur);
+      if(curEntries.length){
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">\n`;
+        html += `  <tr style="background:#fce4ec"><th style="padding:8px 10px;text-align:left;color:#7a4f3a">통화</th><th style="padding:8px 10px;text-align:right;color:#7a4f3a">합계</th></tr>\n`;
+        curEntries.forEach(([cur,amt])=>{
+          const dec = new Set(['AED','USD','EUR','CZK','THB']).has(cur)?2:0;
+          html += `  <tr style="border-bottom:1px solid #fce4ec"><td style="padding:7px 10px">${cur}</td><td style="padding:7px 10px;text-align:right;font-weight:600">${amt.toFixed(dec)}</td></tr>\n`;
+        });
+        html += `</table>\n`;
+      }
+      html += `<br/>\n`;
+    }
+  }
+
+  // ── 푸터
+  html += `<div style="text-align:center;padding:20px;color:#b09080;font-size:12px;border-top:1px solid #fce4ec;margin-top:8px">
+  ✍️ ${n1} & ${n2}의 여행 기록 · ${today}
+</div>
+
+</div>`;
+
+  document.getElementById('blog-preview').value = html;
+  document.getElementById('blog-copy-done').style.display = 'none';
+};
+
+window.copyBlogHTML = function(){
+  const ta = document.getElementById('blog-preview');
+  if(!ta.value){ generateBlogHTML(); }
+  if(!ta.value) return;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(ta.value).then(()=>{
+      showBlogCopyDone();
+    });
+  } else {
+    ta.select();
+    document.execCommand('copy');
+    showBlogCopyDone();
+  }
+};
+
+function showBlogCopyDone(){
+  const el = document.getElementById('blog-copy-done');
+  el.style.display = 'block';
+  setTimeout(()=>{ el.style.display='none'; }, 4000);
+}
+
+function escHtml(str){
+  if(!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
 
 // ════════════════════════════════════════════
 // EXPENSES
