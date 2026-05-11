@@ -1656,6 +1656,57 @@ function dateTabs(trip,fn){
   </div>`;
 }
 
+
+
+function mergeRouteListDone(oldList,newList){
+  const oldItems=normalizeRouteList(oldList);
+  const oldMap={};
+  oldItems.forEach(item=>{oldMap[item.text]=item.done;});
+  return normalizeRouteList(newList).map(item=>({text:item.text,done:!!oldMap[item.text]}));
+}
+
+function normalizeRouteList(list){
+  return (list||[]).map(item=>{
+    if(typeof item==='string') return {text:item,done:false};
+    if(item && typeof item==='object') return {text:item.text||'',done:!!item.done};
+    return {text:String(item||''),done:false};
+  }).filter(item=>item.text);
+}
+
+function routeListHTML(stopId,type,list,label){
+  const items=normalizeRouteList(list);
+  if(!items.length) return '';
+  return `<div class="dg-label">${label}</div><ul class="cl">${
+    items.map((item,idx)=>`
+      <li class="${item.done?'done':''}" onclick="event.stopPropagation();toggleRouteCheck('${stopId}','${type}',${idx})">
+        <div class="cb">✓</div><span>${item.text}</span>
+      </li>
+    `).join('')
+  }</ul>`;
+}
+
+window.toggleRouteCheck=function(stopId,type,idx){
+  const trip=DB.trips.find(t=>t.id===CTI);
+  if(!trip)return;
+
+  let target=null;
+  Object.values(trip.stops||{}).forEach(arr=>{
+    (arr||[]).forEach(s=>{
+      if(s.id===stopId)target=s;
+    });
+  });
+  if(!target || !target[type])return;
+
+  target[type]=normalizeRouteList(target[type]);
+  if(!target[type][idx])return;
+
+  target[type][idx].done=!target[type][idx].done;
+  save();
+
+  const t=DB.trips.find(x=>x.id===CTI);
+  if(t)renderRoute(t);
+};
+
 function renderRoute(trip){
   const el=document.getElementById('sub-route');
   const cc={쇼핑:'badge-pink',식사:'badge-gold',관광:'badge-sage',이동:'badge-lav',숙박:'badge-lav',위스키:'badge-gold',기타:'badge-sky'};
@@ -1674,9 +1725,9 @@ function renderRoute(trip){
       stops.forEach((s,i)=>{
         const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
         let b='';
-        if(s.todo?.length){b+=`<div class="dg-lbl">✅ 할 것</div><ul class="cl-sm">${s.todo.map((x,i)=>`<li class="${(s.checked?.todo||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','todo',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-if(s.buy?.length){b+=`<div class="dg-lbl">🛍️ 살 것</div><ul class="cl-sm">${s.buy.map((x,i)=>`<li class="${(s.checked?.buy||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','buy',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-if(s.eat?.length){b+=`<div class="dg-lbl">🍽️ 먹을 것</div><ul class="cl-sm">${s.eat.map((x,i)=>`<li class="${(s.checked?.eat||[]).includes(i)?'done':''}" onclick="toggleStopCheck('${s.id}','eat',${i},this)"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        b+=routeListHTML(s.id,'todo',s.todo,'✅ 할 것');
+        b+=routeListHTML(s.id,'buy',s.buy,'🛍️ 쇼핑리스트');
+        b+=routeListHTML(s.id,'eat',s.eat,'🍴 먹고 마시기');
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
@@ -1886,9 +1937,9 @@ window.editStop=function(id){
   document.getElementById('st-time').value=s.time||'';document.getElementById('st-cat').value=s.cat;
   document.getElementById('st-from').value=s.from||'';
   document.getElementById('st-transport').value=s.transport||'';document.getElementById('st-duration').value=s.duration||'';
-  document.getElementById('st-todo').value=(s.todo||[]).join('\n');
-  document.getElementById('st-buy').value=(s.buy||[]).join('\n');
-  document.getElementById('st-eat').value=(s.eat||[]).join('\n');
+  document.getElementById('st-todo').value=normalizeRouteList(s.todo).map(x=>x.text).join('\n');
+  document.getElementById('st-buy').value=normalizeRouteList(s.buy).map(x=>x.text).join('\n');
+  document.getElementById('st-eat').value=normalizeRouteList(s.eat).map(x=>x.text).join('\n');
   document.getElementById('st-note').value=s.note||'';openModal('modal-stop');
 };
 window.saveStop=function(){
@@ -1899,19 +1950,15 @@ window.saveStop=function(){
     time:document.getElementById('st-time').value.trim(),cat:document.getElementById('st-cat').value,
     from:document.getElementById('st-from').value.trim(),transport:document.getElementById('st-transport').value.trim(),
     duration:document.getElementById('st-duration').value.trim(),
-    todo:L('st-todo'),buy:L('st-buy'),eat:L('st-eat'),note:document.getElementById('st-note').value.trim()};
-  if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s)Object.assign(s,data);});}
+    todo:L('st-todo').map(text=>({text,done:false})),buy:L('st-buy').map(text=>({text,done:false})),eat:L('st-eat').map(text=>({text,done:false})),note:document.getElementById('st-note').value.trim()};
+  if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s){
+    data.todo=mergeRouteListDone(s.todo,data.todo);
+    data.buy=mergeRouteListDone(s.buy,data.buy);
+    data.eat=mergeRouteListDone(s.eat,data.eat);
+    Object.assign(s,data);
+  }});}
   else { const newId=uid(); trip.stops[curDK].push({id:newId,...data}); window.openRouteCards.add(newId); }
   save();closeModal('modal-stop');renderRoute(trip);
-};
-   window.toggleStopCheck=function(sid,type,idx,el){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
-  const stop=Object.values(trip.stops).flat().find(s=>s.id===sid);if(!stop)return;
-  if(!stop.checked)stop.checked={todo:[],buy:[],eat:[]};
-  const arr=stop.checked[type];
-  const pos=arr.indexOf(idx);
-  if(pos===-1)arr.push(idx);else arr.splice(pos,1);
-  el.classList.toggle('done');save();
 };
 window.deleteStop=function(id){if(!confirm('삭제?'))return;const trip=DB.trips.find(t=>t.id===CTI);Object.keys(trip.stops).forEach(k=>{trip.stops[k]=trip.stops[k].filter(s=>s.id!==id);});save();renderRoute(trip);};
 
