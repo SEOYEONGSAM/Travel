@@ -1511,9 +1511,9 @@ function renderRoute(trip){
       stops.forEach((s,i)=>{
         const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
         let b='';
-        if(s.todo?.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${s.todo.map(x=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.buy?.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${s.buy.map(x=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.eat?.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${s.eat.map(x=>`<li onclick="this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.todo?.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${s.todo.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.buy?.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${s.buy.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.eat?.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${s.eat.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
@@ -1533,7 +1533,7 @@ function renderRoute(trip){
             <span class="badge ${cc[s.cat]||'badge-sky'}" style="font-size:10px">${s.cat}</span>
             <span class="route-chevron">▼</span>
           </div>
-          <div class="route-body">${moveInfo}${b}${reviewBox}
+          <div class="route-body" onclick="event.stopPropagation()">${moveInfo}${b}${reviewBox}
             <div class="flex-row mt-8">
               <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editStop('${s.id}')">✏️ 수정</button>
               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteStop('${s.id}')">🗑️</button>
