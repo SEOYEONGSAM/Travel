@@ -1684,9 +1684,11 @@ function renderRoute(trip){
       stops.forEach((s,i)=>{
         const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
         let b='';
-        if(s.todo?.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${s.todo.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.buy?.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${s.buy.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
-        if(s.eat?.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${s.eat.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        const normList=arr=>( arr||[]).map(x=>typeof x==='string'?{text:x,done:false}:x);
+        const todoList=normList(s.todo),buyList=normList(s.buy),eatList=normList(s.eat);
+        if(todoList.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${todoList.map((x,idx)=>`<li class="${x.done?'done':''}" onclick="event.stopPropagation();toggleStopItem('${s.id}','todo',${idx})"><div class="cb">✓</div><span>${x.text}</span></li>`).join('')}</ul>`;}
+        if(buyList.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${buyList.map((x,idx)=>`<li class="${x.done?'done':''}" onclick="event.stopPropagation();toggleStopItem('${s.id}','buy',${idx})"><div class="cb">✓</div><span>${x.text}</span></li>`).join('')}</ul>`;}
+        if(eatList.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${eatList.map((x,idx)=>`<li class="${x.done?'done':''}" onclick="event.stopPropagation();toggleStopItem('${s.id}','eat',${idx})"><div class="cb">✓</div><span>${x.text}</span></li>`).join('')}</ul>`;}
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
@@ -1749,6 +1751,18 @@ window.saveRouteReview=function(id,val){
     });
   });
   save();
+};
+
+window.toggleStopItem=function(stopId,field,idx){
+  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
+  let s=null;
+  Object.values(trip.stops||{}).forEach(arr=>{const f=arr.find(x=>x.id===stopId);if(f)s=f;});
+  if(!s||!s[field]||s[field][idx]===undefined)return;
+  const item=s[field][idx];
+  if(typeof item==='string'){s[field][idx]={text:item,done:true};}
+  else{item.done=!item.done;}
+  save();
+  renderRoute(trip);
 };
 
 // ── DRAG & DROP for route ──
@@ -1964,22 +1978,44 @@ window.editStop=function(id){
   document.getElementById('st-time').value=s.time||'';document.getElementById('st-cat').value=s.cat;
   document.getElementById('st-from').value=s.from||'';
   document.getElementById('st-transport').value=s.transport||'';document.getElementById('st-duration').value=s.duration||'';
-  document.getElementById('st-todo').value=(s.todo||[]).join('\n');
-  document.getElementById('st-buy').value=(s.buy||[]).join('\n');
-  document.getElementById('st-eat').value=(s.eat||[]).join('\n');
+  const getTexts=arr=>(arr||[]).map(x=>typeof x==='string'?x:x.text).join('\n');
+  document.getElementById('st-todo').value=getTexts(s.todo);
+  document.getElementById('st-buy').value=getTexts(s.buy);
+  document.getElementById('st-eat').value=getTexts(s.eat);
   document.getElementById('st-note').value=s.note||'';openModal('modal-stop');
 };
 window.saveStop=function(){
   const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
   if(!trip.stops[curDK])trip.stops[curDK]=[];
   const L=i=>document.getElementById(i).value.split('\n').map(l=>l.trim()).filter(Boolean);
+  const mergeList=(newTexts,oldArr)=>{
+    const norm=(oldArr||[]).map(x=>typeof x==='string'?{text:x,done:false}:x);
+    return newTexts.map(text=>{const old=norm.find(o=>o.text===text);return old||{text,done:false};});
+  };
+  const newTodo=L('st-todo'),newBuy=L('st-buy'),newEat=L('st-eat');
   const data={name:document.getElementById('st-name').value.trim()||'장소',icon:document.getElementById('st-icon').value.trim()||'📍',
     time:document.getElementById('st-time').value.trim(),cat:document.getElementById('st-cat').value,
     from:document.getElementById('st-from').value.trim(),transport:document.getElementById('st-transport').value.trim(),
     duration:document.getElementById('st-duration').value.trim(),
-    todo:L('st-todo'),buy:L('st-buy'),eat:L('st-eat'),note:document.getElementById('st-note').value.trim()};
-  if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s)Object.assign(s,data);});}
-  else { const newId=uid(); trip.stops[curDK].push({id:newId,...data}); window.openRouteCards.add(newId); }
+    note:document.getElementById('st-note').value.trim()};
+  if(editId){
+    Object.values(trip.stops).forEach(arr=>{
+      const s=arr.find(x=>x.id===editId);
+      if(s){
+        Object.assign(s,data);
+        s.todo=mergeList(newTodo,s.todo);
+        s.buy=mergeList(newBuy,s.buy);
+        s.eat=mergeList(newEat,s.eat);
+      }
+    });
+  } else {
+    const newId=uid();
+    trip.stops[curDK].push({id:newId,...data,
+      todo:newTodo.map(text=>({text,done:false})),
+      buy:newBuy.map(text=>({text,done:false})),
+      eat:newEat.map(text=>({text,done:false}))});
+    window.openRouteCards.add(newId);
+  }
   save();closeModal('modal-stop');renderRoute(trip);
 };
 window.deleteStop=function(id){if(!confirm('삭제?'))return;const trip=DB.trips.find(t=>t.id===CTI);Object.keys(trip.stops).forEach(k=>{trip.stops[k]=trip.stops[k].filter(s=>s.id!==id);});save();renderRoute(trip);};
