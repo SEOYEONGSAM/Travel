@@ -301,6 +301,16 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 
 /* drag handle */
 .route-item.dragging{opacity:.4;border:2px dashed var(--rose);}
+.route-item.drag-over{border-top:3px solid var(--rose);}
+.drag-handle{cursor:grab;color:var(--muted);font-size:18px;padding:0 6px;flex-shrink:0;
+  touch-action:none;user-select:none;-webkit-user-select:none;line-height:1}
+.drag-handle:active{cursor:grabbing;color:var(--rose)}
+.move-btns{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.move-btn{background:var(--warm);border:1px solid var(--subtle);border-radius:6px;
+  width:22px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;color:var(--brown);line-height:1;transition:all .15s}
+.move-btn:active{background:var(--rose);color:#fff;transform:scale(.9)}
+.move-btn:disabled{opacity:.25;cursor:default}
 
 /* ═══════════════════════════════════════════
    DIARY
@@ -1656,57 +1666,6 @@ function dateTabs(trip,fn){
   </div>`;
 }
 
-
-
-function mergeRouteListDone(oldList,newList){
-  const oldItems=normalizeRouteList(oldList);
-  const oldMap={};
-  oldItems.forEach(item=>{oldMap[item.text]=item.done;});
-  return normalizeRouteList(newList).map(item=>({text:item.text,done:!!oldMap[item.text]}));
-}
-
-function normalizeRouteList(list){
-  return (list||[]).map(item=>{
-    if(typeof item==='string') return {text:item,done:false};
-    if(item && typeof item==='object') return {text:item.text||'',done:!!item.done};
-    return {text:String(item||''),done:false};
-  }).filter(item=>item.text);
-}
-
-function routeListHTML(stopId,type,list,label){
-  const items=normalizeRouteList(list);
-  if(!items.length) return '';
-  return `<div class="dg-label">${label}</div><ul class="cl">${
-    items.map((item,idx)=>`
-      <li class="${item.done?'done':''}" onclick="event.stopPropagation();toggleRouteCheck('${stopId}','${type}',${idx})">
-        <div class="cb">✓</div><span>${item.text}</span>
-      </li>
-    `).join('')
-  }</ul>`;
-}
-
-window.toggleRouteCheck=function(stopId,type,idx){
-  const trip=DB.trips.find(t=>t.id===CTI);
-  if(!trip)return;
-
-  let target=null;
-  Object.values(trip.stops||{}).forEach(arr=>{
-    (arr||[]).forEach(s=>{
-      if(s.id===stopId)target=s;
-    });
-  });
-  if(!target || !target[type])return;
-
-  target[type]=normalizeRouteList(target[type]);
-  if(!target[type][idx])return;
-
-  target[type][idx].done=!target[type][idx].done;
-  save();
-
-  const t=DB.trips.find(x=>x.id===CTI);
-  if(t)renderRoute(t);
-};
-
 function renderRoute(trip){
   const el=document.getElementById('sub-route');
   const cc={쇼핑:'badge-pink',식사:'badge-gold',관광:'badge-sage',이동:'badge-lav',숙박:'badge-lav',위스키:'badge-gold',기타:'badge-sky'};
@@ -1725,13 +1684,14 @@ function renderRoute(trip){
       stops.forEach((s,i)=>{
         const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
         let b='';
-        b+=routeListHTML(s.id,'todo',s.todo,'✅ 할 것');
-        b+=routeListHTML(s.id,'buy',s.buy,'🛍️ 쇼핑리스트');
-        b+=routeListHTML(s.id,'eat',s.eat,'🍴 먹고 마시기');
+        if(s.todo?.length){b+=`<div class="dg-label">✅ 할 것</div><ul class="cl">${s.todo.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.buy?.length){b+=`<div class="dg-label">🛍️ 쇼핑리스트</div><ul class="cl">${s.buy.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
+        if(s.eat?.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${s.eat.map(x=>`<li onclick="event.stopPropagation();this.classList.toggle('done')"><div class="cb">✓</div><span>${x}</span></li>`).join('')}</ul>`;}
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
         const reviewBox=`<div class="route-review-box" onclick="event.stopPropagation()"><label>💭 후기 / 평가</label><textarea placeholder="예: 생각보다 좋았음 / 다음엔 오전 방문 추천" onchange="saveRouteReview('${s.id}',this.value)">${s.review||''}</textarea></div>`;
+        const totalStops=stops.length;
         html+=`${i>0?tr:''}<div class="route-item ${isOpen?'open':''}" id="ri-${s.id}" draggable="true"
           ondragstart="dragStart(event,'${s.id}')"
           ondragover="dragOver(event)"
@@ -1740,11 +1700,18 @@ function renderRoute(trip){
           onclick="toggleRoute('${s.id}')">
           <div class="route-dot">${i+1}</div>
           <div class="route-head">
-            <span style="cursor:grab;color:var(--muted);font-size:14px;padding:0 4px;flex-shrink:0" onclick="event.stopPropagation()">⠿</span>
+            <span class="drag-handle" onclick="event.stopPropagation()"
+              ontouchstart="touchDragStart(event,'${s.id}')"
+              ontouchmove="touchDragMove(event)"
+              ontouchend="touchDragEnd(event,'${s.id}')">⠿</span>
             <span class="route-icon">${s.icon||'📍'}</span>
             <span class="route-name">${s.name}</span>
             ${s.time?`<span style="font-size:10px;color:var(--muted)">${s.time}</span>`:''}
             <span class="badge ${cc[s.cat]||'badge-sky'}" style="font-size:10px">${s.cat}</span>
+            <div class="move-btns" onclick="event.stopPropagation()">
+              <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',-1)" ${i===0?'disabled':''}>▲</button>
+              <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',1)" ${i===totalStops-1?'disabled':''}>▼</button>
+            </div>
             <span class="route-chevron">▼</span>
           </div>
           <div class="route-body" onclick="event.stopPropagation()">${moveInfo}${b}${reviewBox}
@@ -1807,6 +1774,66 @@ window.dragDrop=function(e,targetId){
 window.dragEnd=function(){
   document.querySelectorAll('.route-item').forEach(e=>e.classList.remove('dragging'));
   dragSrcId=null;
+};
+
+// ── Move buttons (▲▼) ──
+window.moveStop=function(id,dir){
+  const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
+  const arr=trip.stops[curDK];if(!arr)return;
+  const idx=arr.findIndex(s=>s.id===id);
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=arr.length)return;
+  const [moved]=arr.splice(idx,1);
+  arr.splice(newIdx,0,moved);
+  save();renderRoute(trip);
+};
+
+// ── Touch drag (mobile) ──
+let touchSrcId=null,touchClone=null,touchOverId=null;
+window.touchDragStart=function(e,id){
+  e.stopPropagation();
+  touchSrcId=id;
+  const el=document.getElementById('ri-'+id);
+  if(!el)return;
+  const rect=el.getBoundingClientRect();
+  touchClone=el.cloneNode(true);
+  touchClone.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;
+    opacity:.75;pointer-events:none;z-index:9999;border-radius:14px;
+    box-shadow:0 8px 32px rgba(0,0,0,.25);transform:scale(1.02);transition:none`;
+  document.body.appendChild(touchClone);
+  el.style.opacity='.3';
+};
+window.touchDragMove=function(e){
+  if(!touchClone)return;
+  e.preventDefault();
+  const t=e.touches[0];
+  touchClone.style.top=(t.clientY-40)+'px';
+  touchClone.style.left=(t.clientX-80)+'px';
+  document.querySelectorAll('.route-item').forEach(el=>el.classList.remove('drag-over'));
+  const under=document.elementFromPoint(t.clientX,t.clientY);
+  const ri=under?.closest('.route-item');
+  if(ri&&ri.id!=='ri-'+touchSrcId){
+    ri.classList.add('drag-over');
+    touchOverId=ri.id.replace('ri-','');
+  }else{touchOverId=null;}
+};
+window.touchDragEnd=function(e,id){
+  if(touchClone){touchClone.remove();touchClone=null;}
+  document.getElementById('ri-'+id)?.style.removeProperty('opacity');
+  document.querySelectorAll('.route-item').forEach(el=>el.classList.remove('drag-over'));
+  if(touchOverId&&touchOverId!==id){
+    const trip=DB.trips.find(t=>t.id===CTI);if(trip&&curDK){
+      const arr=trip.stops[curDK];
+      const fromIdx=arr.findIndex(s=>s.id===id);
+      const toIdx=arr.findIndex(s=>s.id===touchOverId);
+      if(fromIdx>=0&&toIdx>=0){
+        const [moved]=arr.splice(fromIdx,1);
+        arr.splice(toIdx,0,moved);
+        save();renderRoute(trip);
+      }
+    }
+  }
+  touchSrcId=null;touchOverId=null;
 };
 window.openDateModal=function(key=null){
   const trip=DB.trips.find(t=>t.id===CTI);
@@ -1937,9 +1964,9 @@ window.editStop=function(id){
   document.getElementById('st-time').value=s.time||'';document.getElementById('st-cat').value=s.cat;
   document.getElementById('st-from').value=s.from||'';
   document.getElementById('st-transport').value=s.transport||'';document.getElementById('st-duration').value=s.duration||'';
-  document.getElementById('st-todo').value=normalizeRouteList(s.todo).map(x=>x.text).join('\n');
-  document.getElementById('st-buy').value=normalizeRouteList(s.buy).map(x=>x.text).join('\n');
-  document.getElementById('st-eat').value=normalizeRouteList(s.eat).map(x=>x.text).join('\n');
+  document.getElementById('st-todo').value=(s.todo||[]).join('\n');
+  document.getElementById('st-buy').value=(s.buy||[]).join('\n');
+  document.getElementById('st-eat').value=(s.eat||[]).join('\n');
   document.getElementById('st-note').value=s.note||'';openModal('modal-stop');
 };
 window.saveStop=function(){
@@ -1950,13 +1977,8 @@ window.saveStop=function(){
     time:document.getElementById('st-time').value.trim(),cat:document.getElementById('st-cat').value,
     from:document.getElementById('st-from').value.trim(),transport:document.getElementById('st-transport').value.trim(),
     duration:document.getElementById('st-duration').value.trim(),
-    todo:L('st-todo').map(text=>({text,done:false})),buy:L('st-buy').map(text=>({text,done:false})),eat:L('st-eat').map(text=>({text,done:false})),note:document.getElementById('st-note').value.trim()};
-  if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s){
-    data.todo=mergeRouteListDone(s.todo,data.todo);
-    data.buy=mergeRouteListDone(s.buy,data.buy);
-    data.eat=mergeRouteListDone(s.eat,data.eat);
-    Object.assign(s,data);
-  }});}
+    todo:L('st-todo'),buy:L('st-buy'),eat:L('st-eat'),note:document.getElementById('st-note').value.trim()};
+  if(editId){Object.values(trip.stops).forEach(arr=>{const s=arr.find(x=>x.id===editId);if(s)Object.assign(s,data);});}
   else { const newId=uid(); trip.stops[curDK].push({id:newId,...data}); window.openRouteCards.add(newId); }
   save();closeModal('modal-stop');renderRoute(trip);
 };
