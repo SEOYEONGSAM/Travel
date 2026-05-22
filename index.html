@@ -2566,7 +2566,15 @@ window.openExpenseModal=function(tripId){
   document.getElementById('ex-share').value='split';
   document.getElementById('ex-settled').value='false';
   document.getElementById('ex-method').value='card';
-  if(tripId)document.getElementById('ex-name')._tripId=tripId;
+  // tripId를 항상 명시적으로 덮어씀 (이전 값 잔류 방지)
+  const resolvedTripId = tripId || globalExpTripFilter || CTI || null;
+  const finalTripId = (resolvedTripId === 'all') ? null : resolvedTripId;
+  document.getElementById('ex-name')._tripId = finalTripId;
+  // 모달 타이틀에 여행 이름 표시
+  if(finalTripId){
+    const t=DB.trips.find(x=>x.id===finalTripId);
+    if(t)document.getElementById('mex-title').textContent=`지출 추가 — ${t.emoji} ${t.name}`;
+  }
   openModal('modal-expense');
 };
 window.editExpense=function(id){
@@ -2598,7 +2606,9 @@ window.saveExpense=function(){
     ? `${Number(dateKey.split('-')[1])}월 ${Number(dateKey.split('-')[2])}일`
     : dateKey;
 
-  const tripId=editId?DB.expenses.find(x=>x.id===editId)?.tripId:(document.getElementById('ex-name')._tripId||CTI||null);
+  const tripId=editId
+    ? DB.expenses.find(x=>x.id===editId)?.tripId
+    : (document.getElementById('ex-name')._tripId ?? null);
 
   const data={
     dateLabel,
