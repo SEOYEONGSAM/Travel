@@ -565,6 +565,9 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   <button class="nav-item" onclick="goPage('trips',this)" id="nav-trips">
     <span class="ni">✈️</span><span>여행</span>
   </button>
+  <button class="nav-item" onclick="goPage('diary',this)" id="nav-diary">
+    <span class="ni">📖</span><span>일기</span>
+  </button>
   <button class="nav-item" onclick="goPage('expenses',this)" id="nav-expenses">
     <span class="ni">💴</span><span>지출</span>
   </button>
@@ -586,7 +589,6 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
     <button class="btn btn-subtle btn-sm" onclick="openEventModal()">+ 일정</button>
   </div>
   <div id="dday-strip"></div>
-  <div id="home-stats"></div>
   <div class="cal-card">
     <div class="cal-nav-row">
       <button class="cal-arrow" onclick="homeCal(-1)">‹</button>
@@ -864,29 +866,6 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 </div></div>
 
-<!-- Memo Modal -->
-<div class="modal-overlay" id="modal-memo"><div class="modal">
-  <div class="modal-handle"></div>
-  <div class="modal-title">메모 추가 📝</div>
-  <div class="fg"><label>카테고리</label>
-    <select id="memo-cat">
-      <option>📌 중요</option>
-      <option>🔑 예약/확인번호</option>
-      <option>💡 현지 팁</option>
-      <option>🛂 비자/입국</option>
-      <option>🏨 숙소</option>
-      <option>✈️ 항공</option>
-      <option>💊 기타</option>
-    </select>
-  </div>
-  <div class="fg"><label>제목</label><input type="text" id="memo-title" placeholder="예: 호텔 체크인 번호"/></div>
-  <div class="fg"><label>내용</label><textarea id="memo-body" rows="4" placeholder="예: 예약번호 ABC123, 체크인 15:00, 체크아웃 11:00"></textarea></div>
-  <div class="modal-actions">
-    <button class="btn btn-ghost" onclick="closeModal('modal-memo')">취소</button>
-    <button class="btn btn-primary" onclick="saveMemo()">저장 💕</button>
-  </div>
-</div></div>
-
 <!-- Expense Modal -->
 <div class="modal-overlay" id="modal-expense"><div class="modal">
   <div class="modal-handle"></div>
@@ -1088,8 +1067,8 @@ const TRIP_EMOJIS = ['🗾','🌸','🏯','🗼','🇨🇿','🏰','🌴','🗺�
 const CAT_EMOJIS = ['🛍️','🍽️','🏨','🚇','🥃','🎡','💊','☕','🎭','🏊','🛺','🍦','🎁','📸','💆','🛻','⛽','🎫','🌊','🏔️'];
 const WEATHER_OPTIONS = ['☀️ 맑음','🌤️ 약간 흐림','⛅ 흐림','🌧️ 비','⛈️ 뇌우','🌨️ 눈','🌪️ 바람','🌫️ 안개','🌈 무지개'];
 const EVENT_COLORS = {travel:['#e8728a','#f4a7b9'],anniversary:['#9b8bc4','#d4c5e8'],memo:['#7aab70','#b8d4b0'],uae:['#6ba3d6','#b0d0ec']};
-const R2K={AED:370,JPY:9.3,KRW:1,USD:1360,EUR:1480,CZK:61,THB:39};
-const R2A={AED:1,JPY:0.025,KRW:0.0027,USD:3.67,EUR:3.98,CZK:0.165,THB:0.105};
+const R2K={AED:408,JPY:9.4,KRW:1,USD:1490,EUR:1740,CZK:68,THB:46};
+const R2A={AED:1,JPY:0.023,KRW:0.00245,USD:3.67,EUR:4.26,CZK:0.167,THB:0.113};
 const uid=()=>'_'+Math.random().toString(36).slice(2,9);
 const toK=(a,c)=>Math.round(a*(R2K[c]||1));
 const toA=(a,c)=>+(a*(R2A[c]||1)).toFixed(2);
@@ -1349,6 +1328,7 @@ window.goPage=function(id,btn){
   if(btn)btn.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
   if(id==='home')renderHome();
+  if(id==='diary')renderGlobalDiary();
   if(id==='expenses')renderGlobalExpenses();
   if(id==='settings')loadSettings();
 };
@@ -1360,38 +1340,8 @@ function renderHome(){
   document.getElementById('home-title').textContent = 'Our Story';
   document.getElementById('home-names').textContent = DB.settings.name1+' & '+DB.settings.name2+' 💕';
   renderDday();
-  renderHomeStats();
   renderHomeCal();
   renderUpcoming();
-}
-
-function renderHomeStats(){
-  const el=document.getElementById('home-stats');
-  const done=DB.trips.filter(t=>t.status==='done');
-  const countries=new Set(done.map(t=>t.country).filter(Boolean)).size;
-  const nights=done.reduce((sum,t)=>{
-    if(t.startDate&&t.endDate){
-      const d=Math.round((new Date(t.endDate)-new Date(t.startDate))/(1000*60*60*24));
-      return sum+(d>0?d:1);
-    }
-    return sum+1;
-  },0);
-  const trips=done.length;
-  if(!trips){el.innerHTML='';return;}
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
-    <div style="background:var(--white);border-radius:var(--r);padding:12px 8px;text-align:center;box-shadow:0 2px 10px var(--shadow);border:1px solid var(--subtle)">
-      <div style="font-size:22px;font-family:var(--font-display);color:var(--rose);font-weight:700">${trips}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600">여행</div>
-    </div>
-    <div style="background:var(--white);border-radius:var(--r);padding:12px 8px;text-align:center;box-shadow:0 2px 10px var(--shadow);border:1px solid var(--subtle)">
-      <div style="font-size:22px;font-family:var(--font-display);color:var(--rose);font-weight:700">${countries}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600">나라</div>
-    </div>
-    <div style="background:var(--white);border-radius:var(--r);padding:12px 8px;text-align:center;box-shadow:0 2px 10px var(--shadow);border:1px solid var(--subtle)">
-      <div style="font-size:22px;font-family:var(--font-display);color:var(--rose);font-weight:700">${nights}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600">박</div>
-    </div>
-  </div>`;
 }
 
 function renderDday(){
@@ -1435,7 +1385,9 @@ function renderHomeCal(){
     const isT=tod.getFullYear()===homeCalY&&tod.getMonth()===homeCalM&&tod.getDate()===day;
     const isSel=selectedDay===k;
     const dayEvents=allEvents.filter(e=>e.start<=k&&e.end>=k);
+    const hasDiary=DB.diary.some(d=>d.dateKey===k);
     let bars=dayEvents.slice(0,2).map(e=>`<div class="cal-bar" style="background:${e.color[0]}">&nbsp;</div>`).join('');
+    if(hasDiary&&dayEvents.length<2)bars+=`<div class="cal-dot"></div>`;
     html+=`<div class="cal-cell ${isT?'today':''} ${isSel?'selected':''}" onclick="selectDay('${k}',${day})">
       <div class="cal-day-num">${day}</div>
       <div class="cal-bars">${bars}</div>
@@ -1457,8 +1409,9 @@ window.selectDay=function(k,day){
     .map(e=>({kind:'event',id:e.id,name:e.name,meta:e.note||'',color:(EVENT_COLORS[e.type]||EVENT_COLORS.memo)[0]}));
 
   const allEvents=[...tripEvents,...calendarEvents];
+  const diaryEntries=DB.diary.filter(d=>d.dateKey===k);
   const panel=document.getElementById('home-day-panel');
-  if(!allEvents.length){panel.innerHTML='';return;}
+  if(!allEvents.length&&!diaryEntries.length){panel.innerHTML='';return;}
 
   const parts=k.split('-');
   const dateStr=`${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일`;
@@ -1482,6 +1435,15 @@ window.selectDay=function(k,day){
     html+=`</div>`;
   });
 
+  diaryEntries.forEach(d=>{
+    html+=`<div class="day-event-item" onclick="goPage('diary',document.getElementById('nav-diary'));renderGlobalDiary('${d.dateKey}')">
+      <div class="day-event-color" style="background:${d.writer==='partner'?'#9b8bc4':'var(--rose)'}"></div>
+      <div class="day-event-info">
+        <div class="day-event-name">📖 ${d.title}</div>
+        <div class="day-event-meta">${d.writer==='partner'?DB.settings.name2:DB.settings.name1} · ${d.mood||''}</div>
+      </div>
+    </div>`;
+  });
   html+=`</div>`;
   panel.innerHTML=html;
 };
@@ -1593,7 +1555,7 @@ window.openTrip=function(id){
 };
 
 function renderTripDetail(trip){
-  const tabs=[{id:'pretip',l:'📋 여행 전'},{id:'route',l:'🗺️ 동선'},{id:'expenses',l:'💴 지출'},{id:'memo',l:'📝 메모'}];
+  const tabs=[{id:'pretip',l:'📋 여행 전'},{id:'route',l:'🗺️ 동선'},{id:'diary',l:'📖 일기'},{id:'expenses',l:'💴 지출'},{id:'photos',l:'📷 사진'}];
   document.getElementById('trip-detail-content').innerHTML=`
     <div class="trip-detail-hero">
       <div class="tdh-emoji">${trip.emoji}</div>
@@ -1607,9 +1569,10 @@ function renderTripDetail(trip){
     <div class="sub-tabs">${tabs.map(t=>`<button class="stab ${t.id===curSub?'active':''}" onclick="switchSub('${t.id}',this)">${t.l}</button>`).join('')}</div>
     <div id="sub-pretip" class="sub-page ${curSub==='pretip'?'active':''}"></div>
     <div id="sub-route" class="sub-page ${curSub==='route'?'active':''}"></div>
+    <div id="sub-diary" class="sub-page ${curSub==='diary'?'active':''}"></div>
     <div id="sub-expenses" class="sub-page ${curSub==='expenses'?'active':''}"></div>
-    <div id="sub-memo" class="sub-page ${curSub==='memo'?'active':''}"></div>`;
-  renderPreTip(trip);renderRoute(trip);renderTripExpenses(trip);renderTripMemo(trip);
+    <div id="sub-photos" class="sub-page ${curSub==='photos'?'active':''}"></div>`;
+  renderPreTip(trip);renderRoute(trip);renderTripDiary(trip);renderTripExpenses(trip);renderPhotos(trip);
 }
 
 window.switchSub=function(id,btn){
@@ -1710,24 +1673,9 @@ function renderRoute(trip){
   if(!trip.dates.length){html+=`<div class="empty"><div class="empty-icon">📅</div><p>날짜를 먼저 추가해봐요!</p></div>`;}
   else if(!curDK){html+=`<div class="empty"><div class="empty-icon">📅</div><p>날짜를 선택해봐요!</p></div>`;}
   else{
-    // 날씨 + 한줄 요약 헤더
-    const dateInfo=trip.dates.find(d=>d.key===curDK)||{};
-    const weathers=['☀️ 맑음','🌤️ 약간 흐림','⛅ 흐림','🌧️ 비','⛈️ 뇌우','🌨️ 눈','🌪️ 바람','🌫️ 안개','🌈 무지개','🥵 더움','🥶 추움'];
-    html+=`<div class="card" style="margin-bottom:10px;padding:12px 14px">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div style="display:flex;gap:5px;flex-wrap:wrap;flex:1">
-          ${weathers.map(w=>`<button onclick="setDateWeather('${curDK}','${w}')" style="font-size:18px;background:${dateInfo.weather===w?'var(--blush)':'transparent'};border:1.5px solid ${dateInfo.weather===w?'var(--rose)':'var(--subtle)'};border-radius:8px;padding:2px 5px;cursor:pointer">${w.split(' ')[0]}</button>`).join('')}
-        </div>
-      </div>
-      <input type="text" value="${dateInfo.summary||''}" placeholder="✏️ 오늘 하루 한 줄 요약..." 
-        style="width:100%;margin-top:8px;border:none;border-bottom:1.5px solid var(--subtle);padding:5px 2px;font-family:var(--font-body);font-size:13px;color:var(--ink);background:transparent;outline:none"
-        onchange="setDateSummary('${curDK}',this.value)" oninput="setDateSummary('${curDK}',this.value)"/>
-      ${dateInfo.weather?`<div style="font-size:11px;color:var(--muted);margin-top:4px">${dateInfo.weather}</div>`:''}
-    </div>`;
     html+=`<div class="flex-row mt-8" style="margin-bottom:12px">
       <button class="btn btn-primary btn-sm" onclick="openModal('modal-route-bulk')">📝 장소 한번에 입력</button>
       <button class="btn btn-subtle btn-sm" onclick="openStopModal()">＋ 장소 추가</button>
-      <button class="btn btn-ghost btn-sm" onclick="shareRoute()">📤 공유</button>
     </div>`;
     const stops=trip.stops[curDK]||[];
     if(!stops.length){html+=`<div class="empty"><div class="empty-icon">🗺️</div><p>장소를 추가해봐요!<br/>한번에 입력 버튼을 눌러보세요</p></div>`;}
@@ -1744,11 +1692,7 @@ function renderRoute(trip){
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
         const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
-        const starRating=`<div class="route-review-box" onclick="event.stopPropagation()">
-          <label>⭐ 별점</label>
-          <div style="display:flex;gap:4px;margin-bottom:8px">${[1,2,3,4,5].map(n=>`<button onclick="event.stopPropagation();setStopRating('${s.id}',${n})" style="font-size:20px;background:none;border:none;cursor:pointer;opacity:${(s.rating||0)>=n?1:.25}">${(s.rating||0)>=n?'⭐':'☆'}</button>`).join('')}</div>
-          <label>💭 후기 / 평가</label><textarea placeholder="예: 생각보다 좋았음 / 다음엔 오전 방문 추천" onchange="saveRouteReview('${s.id}',this.value)">${s.review||''}</textarea>
-        </div>`;
+        const reviewBox=`<div class="route-review-box" onclick="event.stopPropagation()"><label>💭 후기 / 평가</label><textarea placeholder="예: 생각보다 좋았음 / 다음엔 오전 방문 추천" onchange="saveRouteReview('${s.id}',this.value)">${s.review||''}</textarea></div>`;
         const totalStops=stops.length;
         html+=`${i>0?tr:''}<div class="route-item ${isOpen?'open':''}" id="ri-${s.id}" draggable="true"
           ondragstart="dragStart(event,'${s.id}')"
@@ -1765,7 +1709,6 @@ function renderRoute(trip){
             <span class="route-icon">${s.icon||'📍'}</span>
             <span class="route-name">${s.name}</span>
             ${s.time?`<span style="font-size:10px;color:var(--muted)">${s.time}</span>`:''}
-            ${s.rating?`<span style="font-size:11px">⭐${'★'.repeat(s.rating)}</span>`:''}
             <span class="badge ${cc[s.cat]||'badge-sky'}" style="font-size:10px">${s.cat}</span>
             <div class="move-btns" onclick="event.stopPropagation()">
               <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',-1)" ${i===0?'disabled':''}>▲</button>
@@ -1773,7 +1716,7 @@ function renderRoute(trip){
             </div>
             <span class="route-chevron">▼</span>
           </div>
-          <div class="route-body" onclick="event.stopPropagation()">${moveInfo}${b}${starRating}
+          <div class="route-body" onclick="event.stopPropagation()">${moveInfo}${b}${reviewBox}
             <div class="flex-row mt-8">
               <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editStop('${s.id}')">✏️ 수정</button>
               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteStop('${s.id}')">🗑️</button>
@@ -1820,126 +1763,6 @@ window.toggleStopItem=function(stopId,field,idx){
   else{item.done=!item.done;}
   save();
   renderRoute(trip);
-};
-
-// ── 날짜별 날씨/요약 ──
-window.setDateWeather=function(dk,w){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  const d=trip.dates.find(x=>x.key===dk);if(!d)return;
-  d.weather=d.weather===w?'':w;
-  save();renderRoute(trip);
-};
-window.setDateSummary=function(dk,v){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  const d=trip.dates.find(x=>x.key===dk);if(d){d.summary=v;save();}
-};
-
-// ── 별점 ──
-window.setStopRating=function(stopId,rating){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  let s=null;
-  Object.values(trip.stops||{}).forEach(arr=>{const f=arr.find(x=>x.id===stopId);if(f)s=f;});
-  if(!s)return;
-  s.rating=s.rating===rating?0:rating;
-  save();renderRoute(trip);
-};
-
-// ── 동선 공유 (클립보드 복사) ──
-window.shareRoute=function(){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip||!curDK)return;
-  const dateInfo=trip.dates.find(d=>d.key===curDK);
-  const stops=trip.stops[curDK]||[];
-  if(!stops.length){alert('공유할 동선이 없어요!');return;}
-  let text=`✈️ ${trip.name}\n📅 ${dateInfo?.label||curDK}`;
-  if(dateInfo?.weather)text+=` ${dateInfo.weather}`;
-  if(dateInfo?.summary)text+=`\n💬 ${dateInfo.summary}`;
-  text+='\n\n';
-  stops.forEach((s,i)=>{
-    text+=`${i+1}. ${s.icon||'📍'} ${s.name}`;
-    if(s.time)text+=` (${s.time})`;
-    if(s.rating)text+=` ${'⭐'.repeat(s.rating)}`;
-    text+='\n';
-    if(s.transport)text+=`   ↔ ${s.from?s.from+' → ':''}${s.transport} ${s.duration||''}\n`;
-    if(s.note)text+=`   💡 ${s.note}\n`;
-  });
-  text+=`\n— ${DB.settings.name1} & ${DB.settings.name2} 💕`;
-  navigator.clipboard?.writeText(text).then(()=>{
-    alert('📋 클립보드에 복사됐어요!\n카카오톡에 붙여넣기 하세요 💕');
-  }).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
-    alert('📋 복사됐어요! 카카오톡에 붙여넣기 하세요 💕');
-  });
-};
-
-// ════════════════════════════════════════════
-// MEMO TAB
-// ════════════════════════════════════════════
-function renderTripMemo(trip){
-  const el=document.getElementById('sub-memo');if(!el)return;
-  if(!trip.memos)trip.memos=[];
-  const cats=['📌 중요','🔑 예약/확인번호','💡 현지 팁','🛂 비자/입국','🏨 숙소','✈️ 항공','💊 기타'];
-  let html=`<div class="flex-row" style="margin-bottom:12px">
-    <button class="btn btn-primary btn-sm" onclick="openMemoModal()">＋ 메모 추가</button>
-  </div>`;
-  if(!trip.memos.length){html+=`<div class="empty"><div class="empty-icon">📝</div><p>현지 팁, 예약번호, 비자 정보 등<br/>잡다한 것들을 저장해봐요!</p></div>`;}
-  else{
-    const byCat={};
-    trip.memos.forEach(m=>{if(!byCat[m.cat])byCat[m.cat]=[];byCat[m.cat].push(m);});
-    Object.entries(byCat).forEach(([cat,items])=>{
-      html+=`<div class="sec-label" style="margin-top:10px">${cat}</div>`;
-      items.forEach(m=>{
-        html+=`<div class="card" style="padding:12px 14px;margin-bottom:8px">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:3px">${m.title}</div>
-              ${m.body?`<div style="font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.6">${m.body}</div>`:''}
-            </div>
-            <div style="display:flex;gap:4px;flex-shrink:0">
-              ${m.body?`<button class="icon-btn" style="width:24px;height:24px;font-size:11px" onclick="copyMemo('${m.id}')">📋</button>`:''}
-              <button class="icon-btn" style="width:24px;height:24px;font-size:11px" onclick="editMemo('${m.id}')">✏️</button>
-              <button class="icon-btn icon-btn-del" style="width:24px;height:24px;font-size:11px" onclick="deleteMemo('${m.id}')">🗑️</button>
-            </div>
-          </div>
-        </div>`;
-      });
-    });
-  }
-  el.innerHTML=html;
-}
-
-window.openMemoModal=function(id=null){
-  editId=id;
-  const trip=DB.trips.find(t=>t.id===CTI);
-  if(id&&trip){
-    const m=trip.memos?.find(x=>x.id===id);
-    if(m){document.getElementById('memo-title').value=m.title;document.getElementById('memo-body').value=m.body||'';document.getElementById('memo-cat').value=m.cat;}
-  }else{
-    document.getElementById('memo-title').value='';document.getElementById('memo-body').value='';
-  }
-  openModal('modal-memo');
-};
-window.saveMemo=function(){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  if(!trip.memos)trip.memos=[];
-  const title=document.getElementById('memo-title').value.trim();if(!title){alert('제목을 입력해주세요!');return;}
-  const data={title,body:document.getElementById('memo-body').value.trim(),cat:document.getElementById('memo-cat').value};
-  if(editId){const m=trip.memos.find(x=>x.id===editId);if(m)Object.assign(m,data);}
-  else trip.memos.push({id:uid(),...data});
-  save();closeModal('modal-memo');renderTripMemo(trip);editId=null;
-};
-window.deleteMemo=function(id){
-  const trip=DB.trips.find(t=>t.id===CTI);if(!trip)return;
-  if(!confirm('삭제?'))return;
-  trip.memos=trip.memos.filter(x=>x.id!==id);save();renderTripMemo(trip);
-};
-window.editMemo=function(id){openMemoModal(id);};
-window.copyMemo=function(id){
-  const trip=DB.trips.find(t=>t.id===CTI);
-  const m=trip?.memos?.find(x=>x.id===id);if(!m)return;
-  const text=m.title+(m.body?'\n'+m.body:'');
-  navigator.clipboard?.writeText(text).then(()=>alert('복사됐어요! 💕')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('복사됐어요! 💕');
-  });
 };
 
 // ── DRAG & DROP for route ──
@@ -2692,7 +2515,7 @@ function renderGlobalExpenses(){
 
   const exps=globalExpTripFilter==='all'?DB.expenses:DB.expenses.filter(e=>e.tripId===globalExpTripFilter);
   let html=tripTabs+expSummaryHTML(exps);
-  html+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">💡 환율 참고: 1 AED ≈ ₩370 · 1 JPY ≈ ₩9.3</div>`;
+  html+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">💡 환율 참고: 1 AED ≈ ₩408 · 1 JPY ≈ ₩9.4 · 1 USD ≈ ₩1,490</div>`;
   html+=expTableHTML(exps);
   html+=`<button class="btn btn-primary btn-full mt-12" onclick="openExpenseModal(null)">＋ 지출 추가</button>`;
   el.innerHTML=html;
@@ -2703,48 +2526,19 @@ function renderGlobalExpenses(){
 window.setExpTripFilter=function(id){globalExpTripFilter=id;renderGlobalExpenses();};
 
 function renderTripExpenses(trip){
-  const el=document.getElementById('sub-expenses');if(!el)return;
-  document.getElementById('ex-opt-me').textContent=DB.settings.name1;
-  document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
+  const el=document.getElementById('sub-expenses');
   renderCatSelect();
   const exps=DB.expenses.filter(e=>e.tripId===trip.id);
-  const totalK=exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
-  if(!trip.budget)trip.budget=0;
-  const budgetBar=`<div class="card" style="padding:12px 14px;margin-bottom:12px">
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">💰 예산 관리</div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
-      <input type="number" value="${trip.budget||''}" placeholder="예산 입력 (원화 기준)"
-        style="flex:1;border:1.5px solid var(--subtle);border-radius:8px;padding:7px 10px;font-size:13px;outline:none;background:var(--white);color:var(--ink)"
-        onchange="setTripBudget('${trip.id}',this.value)" inputmode="numeric"/>
-      <span style="font-size:12px;color:var(--muted)">₩</span>
-    </div>
-    ${trip.budget>0?`<div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
-        <span>지출 ₩${totalK.toLocaleString()}</span>
-        <span>예산 ₩${Number(trip.budget).toLocaleString()}</span>
-      </div>
-      <div style="background:var(--subtle);border-radius:5px;height:10px;overflow:hidden">
-        <div style="height:100%;border-radius:5px;width:${Math.min(100,Math.round(totalK/trip.budget*100))}%;background:${totalK>trip.budget?'#e05050':totalK>trip.budget*0.8?'#f9c784':'var(--sage)'};transition:width .5s"></div>
-      </div>
-      <div style="font-size:11px;margin-top:4px;font-weight:700;color:${totalK>trip.budget?'#e05050':'#4a8a40'}">
-        ${totalK>trip.budget?`⚠️ 예산 초과 ₩${(totalK-trip.budget).toLocaleString()}`:`✅ 잔여 ₩${(trip.budget-totalK).toLocaleString()} (${Math.round(totalK/trip.budget*100)}% 사용)`}
-      </div>
-    </div>`:''}
-  </div>`;
-  let html=dateTabs(trip,'setED')+budgetBar+expSummaryHTML(exps);
   const fe=curDK?exps.filter(e=>e.dateKey===curDK):exps;
+  let html=dateTabs(trip,'setED')+expSummaryHTML(fe);
   html+=expTableHTML(fe);
   html+=`<div class="flex-row mt-12"><button class="btn btn-primary" onclick="openExpenseModal('${trip.id}')">＋ 지출 추가</button></div>`;
-  html+=`<div style="font-size:11px;color:var(--muted);margin-top:7px">💡 1 AED ≈ ₩370 · 1 JPY ≈ ₩9.3</div>`;
+  html+=`<div style="font-size:11px;color:var(--muted);margin-top:7px">💡 1 AED ≈ ₩408 · 1 JPY ≈ ₩9.4 · 1 USD ≈ ₩1,490</div>`;
   el.innerHTML=html;
-  const ce=Object.entries(exps.reduce((a,e)=>{if(!a[e.cat])a[e.cat]=0;a[e.cat]+=toK(e.amount,e.currency);return a},{})).sort((a,b)=>b[1]-a[1]);
+  const ce=Object.entries(fe.reduce((a,e)=>{if(!a[e.cat])a[e.cat]=0;a[e.cat]+=toK(e.amount,e.currency);return a},{})).sort((a,b)=>b[1]-a[1]);
+  const totalK=fe.reduce((s,e)=>s+toK(e.amount,e.currency),0);
   if(ce.length&&totalK>0)setTimeout(()=>drawDonut(ce,['#f4a7b9','#f9c784','#d4c5e8','#90caf9','#c9954a','#b8d4b0','#c0c0c0'],totalK),60);
 }
-
-window.setTripBudget=function(tripId,val){
-  const trip=DB.trips.find(t=>t.id===tripId);if(!trip)return;
-  trip.budget=Number(val)||0;save();renderTripExpenses(trip);
-};
 
 function drawDonut(ce,colors,total){
   const cv=document.getElementById('donutChart');if(!cv)return;
