@@ -526,6 +526,37 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   .exp-table-head,.exp-table-row,.exp-total-row{grid-template-columns:1fr 2fr 1fr 1fr 30px;gap:3px}
   .fg-row{grid-template-columns:1fr}
 }
+
+/* v3.4: compact responsive route cards (keep existing events and storage untouched) */
+.route-head{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.route-main-info{flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:7px}
+.route-primary-line{display:flex;align-items:flex-start;gap:8px;min-width:0}
+.route-primary-line .route-icon{flex:0 0 auto;line-height:1.4}
+.route-primary-line .route-name{min-width:0;flex:1;overflow-wrap:anywhere;word-break:normal;line-height:1.5}
+.route-secondary-line{display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;min-width:0}
+.route-time,.route-rating{font-size:11px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
+.route-category{max-width:100%;overflow-wrap:anywhere}
+.route-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto;min-width:0}
+.route-map-button{max-width:100%;white-space:nowrap;flex:0 0 auto;text-align:center}
+.route-actions .move-btns{flex:0 0 auto}
+.route-actions .route-chevron{flex:0 0 auto}
+@media(max-width:600px){
+  .route-item{padding:12px 11px}
+  .route-head{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:8px;row-gap:10px;align-items:start}
+  .route-head>.drag-handle{grid-column:1;grid-row:1 / span 2;padding:2px 0;justify-self:center}
+  .route-main-info{grid-column:2;grid-row:1;min-width:0;width:100%}
+  .route-primary-line .route-name{font-size:14px}
+  .route-actions{grid-column:2;grid-row:2;width:100%;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}
+  .route-map-button{font-size:11px;padding:7px 10px;min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .route-actions .move-btns{margin-left:auto}
+  .route-actions .route-chevron{align-self:center;padding:0 2px}
+  .route-item .route-dot{left:-25px}
+}
+@media(max-width:340px){
+  .route-actions .route-map-button{width:100%}
+  .route-actions .move-btns{margin-left:0}
+}
+
 </style>
 </head>
 <body>
@@ -1781,17 +1812,25 @@ function renderRoute(trip){
               ontouchstart="touchDragStart(event,'${s.id}')"
               ontouchmove="touchDragMove(event)"
               ontouchend="touchDragEnd(event,'${s.id}')">⠿</span>
-            <span class="route-icon">${s.icon??'📍'}</span>
-            <span class="route-name">${s.name}</span>
-            <button class="btn btn-subtle btn-sm" onclick="event.stopPropagation();openStopMap('auto','${s.id}')">🗺️ ${plusProviderNames[plusStopProvider(s)]}</button>
-            ${s.time?`<span style="font-size:10px;color:var(--muted)">${s.time}</span>`:''}
-            ${s.rating?`<span style="font-size:11px">⭐${'★'.repeat(s.rating)}</span>`:''}
-            <span class="badge ${cc[s.cat]||'badge-sky'}" style="font-size:10px">${s.cat}</span>
-            <div class="move-btns" onclick="event.stopPropagation()">
-              <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',-1)" ${i===0?'disabled':''}>▲</button>
-              <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',1)" ${i===totalStops-1?'disabled':''}>▼</button>
+            <div class="route-main-info">
+              <div class="route-primary-line">
+                <span class="route-icon">${s.icon??'📍'}</span>
+                <span class="route-name">${s.name}</span>
+              </div>
+              <div class="route-secondary-line">
+                ${s.time?`<span class="route-time">${s.time}</span>`:''}
+                ${s.rating?`<span class="route-rating">⭐${'★'.repeat(s.rating)}</span>`:''}
+                <span class="badge ${cc[s.cat]||'badge-sky'} route-category">${s.cat}</span>
+              </div>
             </div>
-            <span class="route-chevron">▼</span>
+            <div class="route-actions" onclick="event.stopPropagation()">
+              <button class="btn btn-subtle btn-sm route-map-button" onclick="event.stopPropagation();openStopMap('auto','${s.id}')">🗺️ ${plusProviderNames[plusStopProvider(s)]}</button>
+              <div class="move-btns" onclick="event.stopPropagation()">
+                <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',-1)" ${i===0?'disabled':''}>▲</button>
+                <button class="move-btn" onclick="event.stopPropagation();moveStop('${s.id}',1)" ${i===totalStops-1?'disabled':''}>▼</button>
+              </div>
+              <span class="route-chevron">▼</span>
+            </div>
           </div>
           <div class="route-body" onclick="event.stopPropagation()">${moveInfo}${b}${starRating}
             <div class="flex-row mt-8">
