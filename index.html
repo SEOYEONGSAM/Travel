@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.5</title>
+<title>Our Travel Book v3.6.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -687,7 +687,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.5</div>
+    <div class="sec-label">클라우드 저장 · v3.6.1</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -1150,6 +1150,21 @@ let cloudLastServerDB=null;
 let authInstance=null;
 window.firebaseLoaded=false;
 const CLOUD_PENDING_KEY='tb_v35_pending';
+// v3.6.1: canonical fingerprint - Firestore may return map fields in a different order.
+// Treat objects with the same keys/values as identical, independent of insertion order.
+function cloudCanonical(value){
+  if(Array.isArray(value))return value.map(cloudCanonical);
+  if(value && typeof value==='object'){
+    if(typeof value.toDate==='function')return value.toDate().toISOString();
+    const out={};
+    for(const k of Object.keys(value).sort()){
+      if(value[k]!==undefined)out[k]=cloudCanonical(value[k]);
+    }
+    return out;
+  }
+  return value;
+}
+function cloudFingerprint(value){return JSON.stringify(cloudCanonical(value));}
 
 function showSyncStatus(message,kind='info'){
   const el=document.getElementById('cloud-sync-status');
@@ -1183,6 +1198,7 @@ window.tbUseServerVersion=function(){
   if(!cloudLastServerDB)return alert('최신 서버 데이터를 아직 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
   if(!confirm('먼저 미동기화 백업 파일을 다운로드했나요?\n확인하면 이 기기의 미저장 변경사항을 버리고 서버 최신 기록을 불러옵니다.'))return;
   DB=JSON.parse(JSON.stringify(cloudLastServerDB));
+  cloudBaseFingerprint=cloudFingerprint(cloudLastServerDB);
   cloudDirty=false;cloudWriting=false;cloudConflict=false;
   localStorage.removeItem(CLOUD_PENDING_KEY);
   saveLocalOnly();
@@ -1331,7 +1347,7 @@ function initCloudSync(){
         if(snap.metadata.hasPendingWrites)return;
         const record=snap.data();
         if(!record||!record.DB){authShow(true);authMessage('Firestore 문서에 DB 데이터가 없습니다. 저장하지 않고 중단했습니다.');return;}
-        const sig=JSON.stringify(record.DB);
+        const sig=cloudFingerprint(record.DB);
         cloudLastServerDB=record.DB;
         if(initial){
           initial=false;
@@ -1394,7 +1410,7 @@ async function flushCloudSave(){
       if(!snap.exists||!snap.data()?.DB)throw Error('TB_DOC_MISSING');
       const server=snap.data();
       const serverRevision=Number(server.syncRevision||0);
-      const serverFingerprint=JSON.stringify(server.DB);
+      const serverFingerprint=cloudFingerprint(server.DB);
       if(serverRevision!==expectedRevision||serverFingerprint!==expectedFingerprint)throw Error('TB_CONFLICT');
       const nextRevision=serverRevision+1;
       tx.update(cloudRoomRef,{
@@ -1406,7 +1422,7 @@ async function flushCloudSave(){
       return nextRevision;
     });
     cloudRevision=result;
-    cloudBaseFingerprint=JSON.stringify(draft);
+    cloudBaseFingerprint=cloudFingerprint(draft);
     cloudLastServerDB=draft;
     if(cloudEditSequence===startingSequence){
       cloudDirty=false;
