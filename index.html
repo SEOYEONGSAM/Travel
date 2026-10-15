@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.6.2</title>
+<title>Our Travel Book v3.6.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -687,7 +687,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.6.2</div>
+    <div class="sec-label">클라우드 저장 · v3.6.4</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -841,6 +841,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
     <div class="fg"><label>장소 이름</label><input type="text" id="st-name"/></div>
     <div class="fg"><label>이모지 (선택 사항)</label><div class="emoji-manual"><input type="text" id="st-icon" placeholder="이모지 직접 입력" oninput="syncEmojiSelection('ep-stop',this.value)"/><button type="button" class="btn btn-subtle btn-sm" onclick="setFreeEmoji('ep-stop','')">없음</button></div></div>
   </div>
+  <div class="fg"><label>지도 검색용 주소 (선택)</label><input type="text" id="st-map-address" placeholder="예: 경남 창원시 성산구 ○○로 00"/><div class="emoji-picker-help">업체명이 지도에서 잘 안 잡힐 때 입력하세요. 네이버·구글·고덕 지도 검색과 앱 내 핀 찾기에 우선 사용됩니다.</div></div>
   <div class="fg"><div class="emoji-picker-grid" id="ep-stop"></div><div class="emoji-picker-help">자주 사용하는 이모지를 선택하거나 휴대폰 키보드에서 직접 입력할 수 있습니다.</div></div>
   <div class="fg-row">
     <div class="fg"><label>시간</label><input type="text" id="st-time" placeholder="16:00"/></div>
@@ -848,7 +849,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
       <select id="st-cat"><option>쇼핑</option><option>식사</option><option>관광</option><option>이동</option><option>숙박</option><option>위스키</option><option>기타</option></select>
     </div>
   </div>
-  <div class="fg"><label>출발지</label><input type="text" id="st-from" placeholder="호텔 로비"/></div>
+  <div class="fg"><label>출발지 직접 변경 (선택)</label><input type="text" id="st-from" placeholder="비워두면 바로 이전 장소가 자동 출발지"/><div class="emoji-picker-help">기본값은 이전 일정 장소입니다. 공항·호텔 등 다른 곳에서 출발하는 경우에만 입력하세요.</div></div>
   <div class="fg-row">
     <div class="fg"><label>이동 방법</label><input type="text" id="st-transport" placeholder="🚶 도보"/></div>
     <div class="fg"><label>이동 시간</label><input type="text" id="st-duration" placeholder="약 5분"/></div>
@@ -2035,7 +2036,10 @@ function renderRoute(trip){
     else{
       html+=`<div class="route-timeline">`;
       stops.forEach((s,i)=>{
-        const tr=s.transport&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${s.from?s.from+' → ':''} ${s.transport} ${s.duration||''}</div><hr/></div>`:'';
+        const prevStop=i>0?stops[i-1]:null;
+        const autoFrom=s.from||(prevStop?.name||'');
+        const hasMove=!!(s.transport||s.from||s.duration);
+        const tr=hasMove&&i>0?`<div class="transport-row" style="margin-left:-32px;padding-left:0"><hr/><div class="transport-pill">${autoFrom?autoFrom+' → ':''}${s.name}${s.transport?' · '+s.transport:''}${s.duration?' '+s.duration:''}</div><hr/></div>`:'';
         let b='';
         const normList=arr=>( arr||[]).map(x=>typeof x==='string'?{text:x,done:false}:x);
         const todoList=normList(s.todo),buyList=normList(s.buy),eatList=normList(s.eat);
@@ -2044,7 +2048,7 @@ function renderRoute(trip){
         if(eatList.length){b+=`<div class="dg-label">🍴 먹고 마시기</div><ul class="cl">${eatList.map((x,idx)=>`<li class="${x.done?'done':''}" onclick="event.stopPropagation();toggleStopItem('${s.id}','eat',${idx})"><div class="cb">✓</div><span>${x.text}</span></li>`).join('')}</ul>`;}
         if(s.note){b+=`<div class="route-note">💡 ${s.note}</div>`;}
         const isOpen=window.openRouteCards?.has(s.id);
-        const moveInfo=(s.transport||s.from||s.duration)?`<div class="route-move-info">↔ 이동: ${s.from?s.from+' → ':''}${s.transport||'이동'} ${s.duration||''}</div>`:'';
+        const moveInfo=hasMove?`<div class="route-move-info">↔ 이동: ${autoFrom?autoFrom+' → ':''}${s.name}${s.transport?' · '+s.transport:''}${s.duration?' '+s.duration:''}</div>`:'';
         const starRating=`<div class="route-review-box" onclick="event.stopPropagation()">
           <label>⭐ 별점</label>
           <div style="display:flex;gap:4px;margin-bottom:8px">${[1,2,3,4,5].map(n=>`<button onclick="event.stopPropagation();setStopRating('${s.id}',${n})" style="font-size:20px;background:none;border:none;cursor:pointer;opacity:${(s.rating||0)>=n?1:.25}">${(s.rating||0)>=n?'⭐':'☆'}</button>`).join('')}</div>
@@ -2164,11 +2168,13 @@ window.shareRoute=function(){
   if(dateInfo?.summary)text+=`\n💬 ${dateInfo.summary}`;
   text+='\n\n';
   stops.forEach((s,i)=>{
+    const prevStop=i>0?stops[i-1]:null;
+    const autoFrom=s.from||(prevStop?.name||'');
     text+=`${i+1}. ${s.icon??'📍'}${s.icon?' ':''}${s.name}`;
     if(s.time)text+=` (${s.time})`;
     if(s.rating)text+=` ${'⭐'.repeat(s.rating)}`;
     text+='\n';
-    if(s.transport)text+=`   ↔ ${s.from?s.from+' → ':''}${s.transport} ${s.duration||''}\n`;
+    if(s.transport||s.from||s.duration)text+=`   ↔ ${autoFrom?autoFrom+' → ':''}${s.name}${s.transport?' · '+s.transport:''}${s.duration?' '+s.duration:''}\n`;
     if(s.note)text+=`   💡 ${s.note}\n`;
   });
   text+=`\n— ${DB.settings.name1} & ${DB.settings.name2} 💕`;
@@ -2451,13 +2457,13 @@ window.saveBulkRoute=function(){
   save();closeModal('modal-route-bulk');renderRoute(trip);
 };
 
-window.openStopModal=function(){editId=null;document.getElementById('ms-title').textContent='장소 추가 📍';['st-name','st-time','st-from','st-transport','st-duration','st-note'].forEach(i=>document.getElementById(i).value='');renderFreeEP('ep-stop','📍');['st-todo','st-buy','st-eat'].forEach(i=>document.getElementById(i).value='');openModal('modal-stop');};
+window.openStopModal=function(){editId=null;document.getElementById('ms-title').textContent='장소 추가 📍';['st-name','st-map-address','st-time','st-from','st-transport','st-duration','st-note'].forEach(i=>document.getElementById(i).value='');renderFreeEP('ep-stop','📍');['st-todo','st-buy','st-eat'].forEach(i=>document.getElementById(i).value='');openModal('modal-stop');};
 window.editStop=function(id){
   const trip=DB.trips.find(t=>t.id===CTI);let s=null;
   Object.values(trip.stops||{}).forEach(arr=>{const f=arr.find(x=>x.id===id);if(f)s=f;});
   if(!s)return;editId=id;
   document.getElementById('ms-title').textContent='장소 수정 ✏️';
-  document.getElementById('st-name').value=s.name;renderFreeEP('ep-stop',s.icon??'📍');
+  document.getElementById('st-name').value=s.name;document.getElementById('st-map-address').value=s.mapAddress||'';renderFreeEP('ep-stop',s.icon??'📍');
   document.getElementById('st-time').value=s.time||'';document.getElementById('st-cat').value=s.cat;
   document.getElementById('st-from').value=s.from||'';
   document.getElementById('st-transport').value=s.transport||'';document.getElementById('st-duration').value=s.duration||'';
@@ -2477,6 +2483,7 @@ window.saveStop=function(){
   };
   const newTodo=L('st-todo'),newBuy=L('st-buy'),newEat=L('st-eat');
   const data={name:document.getElementById('st-name').value.trim()||'장소',icon:document.getElementById('st-icon').value.trim(),
+    mapAddress:document.getElementById('st-map-address').value.trim(),
     time:document.getElementById('st-time').value.trim(),cat:document.getElementById('st-cat').value,
     from:document.getElementById('st-from').value.trim(),transport:document.getElementById('st-transport').value.trim(),
     duration:document.getElementById('st-duration').value.trim(),
@@ -2705,12 +2712,14 @@ window.generateBlogHTML = function(){
         html += `<p style="color:#aaa;font-size:13px">동선 기록 없음</p>\n`;
       } else {
         stops.forEach((s, si)=>{
+          const prevStop=si>0?stops[si-1]:null;
+          const autoFrom=s.from||(prevStop?.name||'');
           html += `<div style="display:flex;gap:12px;margin-bottom:14px;padding:12px 14px;background:#fff8f2;border-radius:10px;border-left:4px solid #f4a7b9">\n`;
           html += `  <div style="font-size:22px;flex-shrink:0">${s.icon??'📍'}</div>\n`;
           html += `  <div style="flex:1">\n`;
           html += `    <div style="font-weight:700;font-size:14px;color:#2d1810">${escHtml(s.name)}${s.time?` <span style="font-size:12px;color:#9a7a6a;font-weight:400">${escHtml(s.time)}</span>`:''}</div>\n`;
-          if(s.from || s.transport){
-            html += `    <div style="font-size:12px;color:#b09080;margin-top:2px">출발지: ${escHtml(s.from||'-')} · ${escHtml(s.transport||'')} ${escHtml(s.duration||'')}</div>\n`;
+          if(s.from || s.transport || s.duration){
+            html += `    <div style="font-size:12px;color:#b09080;margin-top:2px">이동: ${escHtml(autoFrom||'-')} → ${escHtml(s.name)}${s.transport?' · '+escHtml(s.transport):''}${s.duration?' '+escHtml(s.duration):''}</div>\n`;
           }
           if(s.todo && s.todo.length){
             html += `    <div style="font-size:13px;margin-top:6px">✅ ${s.todo.map(t=>escHtml(t)).join(' · ')}</div>\n`;
@@ -3291,7 +3300,7 @@ window.exportPDF=function(){
  .upgrade-overlay{position:fixed;inset:0;z-index:1100;background:rgba(30,10,5,.55);display:none;align-items:center;justify-content:center;padding:12px}
  .upgrade-overlay.show{display:flex}.upgrade-panel{background:var(--cream);border-radius:20px;padding:18px;width:100%;max-width:650px;max-height:94vh;overflow:auto;color:var(--ink)}
  .upgrade-label{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}.upgrade-input{width:100%;padding:10px;border:1.5px solid var(--subtle);border-radius:10px;background:var(--white);color:var(--ink);font:inherit}
- .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
+ .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-route-legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}.upgrade-route-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--white);border:1px solid var(--subtle);border-radius:999px;padding:4px 7px}.upgrade-route-swatch{width:18px;height:4px;border-radius:999px;display:inline-block;flex:0 0 auto}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
 </style>
 <div class="upgrade-overlay" id="upgrade-overlay"><div class="upgrade-panel">
  <div class="flex-between"><div class="page-title" style="font-size:23px">Travel Book · Plus</div><button class="btn btn-ghost btn-sm" onclick="closeUpgrade()">✕ 닫기</button></div>
@@ -3434,7 +3443,7 @@ function plusDateCountry(t,date){return t?.dateCountries?.[date]||plusCountryFor
 function plusCountryForStop(s,t=plusGetTrip(),date){
  if(s?.countryCode)return s.countryCode;
  // A recognizable place name takes precedence over a mixed-country trip title.
- const location=plusCountryFromText(s?.name);
+ const location=plusCountryFromText([s?.name,s?.mapAddress].filter(Boolean).join(' '));
  if(location)return location;
  const day=date||Object.keys(t?.stops||{}).find(k=>(t.stops[k]||[]).some(x=>x.id===s?.id));
  return plusDateCountry(t,day)||'';
@@ -3449,13 +3458,14 @@ function plusStopProvider(s,date){
  if(code)return 'google';
  return plusProvider();
 }
-function plusQuery(s){const t=plusGetTrip(),c=plusCountryForStop(s,t);const hint={KR:'대한민국',JP:'日本',CN:'中国',TH:'Thailand',AE:'UAE',HK:'Hong Kong',MO:'Macau',TW:'Taiwan'}[c]||t?.country||'';return [s?.name,hint].filter(Boolean).join(' ').trim();}
+function plusSearchText(s){return String(s?.mapAddress||s?.name||'').trim();}
+function plusQuery(s){const t=plusGetTrip(),c=plusCountryForStop(s,t);const hint={KR:'대한민국',JP:'日本',CN:'中国',TH:'Thailand',AE:'UAE',HK:'Hong Kong',MO:'Macau',TW:'Taiwan'}[c]||t?.country||'';return [plusSearchText(s),hint].filter(Boolean).join(' ').trim();}
 function plusUrlForStop(s,provider=plusStopProvider(s)){
  const saved=s?.mapLinks?.[provider];if(saved&&/^https:\/\//i.test(saved))return saved;
  const q=plusQuery(s),encoded=encodeURIComponent(q);
  if(provider==='naver')return 'https://map.naver.com/p/search/'+encoded;
  if(provider==='amap')return 'https://uri.amap.com/search?keyword='+encoded+'&view=map&callnative=1';
- if(Number.isFinite(Number(s?.lat))&&Number.isFinite(Number(s?.lng))&&s?.lat!==undefined&&s?.lng!==undefined)return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.lat+','+s.lng);
+ if(!s?.mapAddress&&Number.isFinite(Number(s?.lat))&&Number.isFinite(Number(s?.lng))&&s?.lat!==undefined&&s?.lng!==undefined)return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.lat+','+s.lng);
  return 'https://www.google.com/maps/search/?api=1&query='+encoded;
 }
 window.openStopMap=function(which,id){const st=plusStop(id);if(!st)return;window.open(plusUrlForStop(st,which==='auto'?plusStopProvider(st):which),'_blank','noopener,noreferrer');};
@@ -3469,18 +3479,36 @@ window.editPlusMapLink=function(id){const st=plusStop(id);if(!st)return;const pr
 window.openDayRoute=function(){const t=plusGetTrip();if(!t)return;const date=document.getElementById('plus-map-date')?.value||curDK;const items=t.stops?.[date]||[];if(!items.length)return alert('장소가 없습니다.');const groups=[];for(const st of items){const provider=plusStopProvider(st,date);let last=groups[groups.length-1];if(!last||last.provider!==provider)groups.push(last={provider,stops:[]});last.stops.push(st);}
  if(groups.length>1){alert('이 날짜에는 국가/지도 서비스가 다른 장소가 포함되어 있습니다. 첫 장소를 열고, 각 장소의 지도 버튼으로 이동해 주세요.');window.open(plusUrlForStop(items[0]),'_blank','noopener,noreferrer');return;}
  const provider=groups[0].provider;if(provider!=='google'){alert(plusProviderNames[provider]+'는 여러 경유지 동시 연결이 제한되어 첫 장소를 엽니다.');window.open(plusUrlForStop(items[0],provider),'_blank','noopener,noreferrer');return;}
- const a=items.map(x=>x.lat!==undefined&&x.lng!==undefined?x.lat+','+x.lng:plusQuery(x));if(a.length===1)return window.open(plusUrlForStop(items[0],'google'),'_blank','noopener,noreferrer');const chosen=a.slice(0,5);const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(chosen[0])+'&destination='+encodeURIComponent(chosen[chosen.length-1])+(chosen.length>2?'&waypoints='+encodeURIComponent(chosen.slice(1,-1).join('|')):'');window.open(url,'_blank','noopener,noreferrer');if(a.length>5)alert('첫 5개 장소만 경로에 포함했습니다.');};
+ const a=items.map(x=>x.mapAddress?plusQuery(x):(x.lat!==undefined&&x.lng!==undefined?x.lat+','+x.lng:plusQuery(x)));if(a.length===1)return window.open(plusUrlForStop(items[0],'google'),'_blank','noopener,noreferrer');const chosen=a.slice(0,5);const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(chosen[0])+'&destination='+encodeURIComponent(chosen[chosen.length-1])+(chosen.length>2?'&waypoints='+encodeURIComponent(chosen.slice(1,-1).join('|')):'');window.open(url,'_blank','noopener,noreferrer');if(a.length>5)alert('첫 5개 장소만 경로에 포함했습니다.');};
 window.openGoogleDay=window.openDayRoute;
-window.openUpgradeMap=function(){const t=plusGetTrip();if(!t)return plusShow('<p>여행 탭에서 여행을 먼저 선택한 다음 지도 보기를 열어주세요.</p><button class="btn btn-subtle" onclick="openUpgradeCenter()">뒤로</button>');const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');const selected=plusSettings.providers?.[t.id]||'auto';const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 국가를 모르는 장소는 날짜의 국가를 선택하세요. 장소별 지도 앱 변경도 가능합니다.</p><div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div><select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select><div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select><div id="plus-day-country"></div><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-stops"></div><div class="upgrade-buttonrow"><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);setTimeout(drawUpgradeMap,80);};
+window.openUpgradeMap=function(){const t=plusGetTrip();if(!t)return plusShow('<p>여행 탭에서 여행을 먼저 선택한 다음 지도 보기를 열어주세요.</p><button class="btn btn-subtle" onclick="openUpgradeCenter()">뒤로</button>');const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');const selected=plusSettings.providers?.[t.id]||'auto';const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 국가를 모르는 장소는 날짜의 국가를 선택하세요. 장소별 지도 앱 변경도 가능합니다.</p><div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div><select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select><div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select><div id="plus-day-country"></div><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-legend" class="upgrade-route-legend"></div><div id="plus-map-stops"></div><div class="upgrade-buttonrow"><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);setTimeout(drawUpgradeMap,80);};
 window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value,el=document.getElementById('plus-map');if(!t||!el)return;const arr=t.stops?.[date]||[];
  const dayCode=t.dateCountries?.[date]||'';document.getElementById('plus-day-country').innerHTML=`<div class="upgrade-label">이 날짜의 국가 ${!dayCode?'(자동: '+plusEsc(plusDateCountry(t,date)||'미지정')+')':''}</div>${plusCountrySelect(dayCode,'setPlusDayCountry')}`;
- document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:6px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
+ document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:4px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div>${s.mapAddress?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">📍 지도 검색: ${plusEsc(s.mapAddress)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
  if(plusMap){plusMap.remove();plusMap=null;}const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
  plusMap=L.map(el).setView([36,128],4);
- // Alternative tile host instead of the blocked volunteer-run OSM tile endpoint.
- const tiles=L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(plusMap);
+ // Key-free OpenStreetMap tiles. No API key is required.
+ const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(plusMap);
  let tileErrors=0;tiles.on('tileerror',()=>{if(++tileErrors===3){status.textContent='지도 배경을 불러오지 못했습니다. 아래 장소별 지도 버튼은 계속 사용할 수 있습니다.';}});
- const pts=[];arr.forEach((s,i)=>{if(s.lat===undefined||s.lng===undefined)return;const lat=Number(s.lat),lng=Number(s.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;pts.push([lat,lng]);L.marker([lat,lng]).addTo(plusMap).bindPopup(plusEsc((i+1)+'. '+s.name));});if(pts.length){if(pts.length>1)L.polyline(pts,{color:'#e8728a',weight:3,dashArray:'6,6'}).addTo(plusMap);plusMap.fitBounds(pts,{padding:[30,30],maxZoom:14});}else status.textContent='아직 핀 좌표가 없습니다. 장소별 핀 찾기를 눌러 위치를 저장하세요.';setTimeout(()=>plusMap&&plusMap.invalidateSize(),200);};
+ const routeColors=['#e8728a','#4f86f7','#3aa76d','#f59e0b','#8b5cf6','#06a6b8','#ef5b5b','#7cab35','#d977b5','#64748b'];
+ const pts=[],legend=[];
+ arr.forEach((s,i)=>{
+   if(s.lat===undefined||s.lng===undefined)return;
+   const lat=Number(s.lat),lng=Number(s.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+   pts.push([lat,lng]);
+   L.marker([lat,lng]).addTo(plusMap).bindPopup(plusEsc((i+1)+'. '+s.name));
+   if(i>0){
+     const prev=arr[i-1],plat=Number(prev?.lat),plng=Number(prev?.lng);
+     if(prev?.lat!==undefined&&prev?.lng!==undefined&&Number.isFinite(plat)&&Number.isFinite(plng)){
+       const color=routeColors[(i-1)%routeColors.length];
+       L.polyline([[plat,plng],[lat,lng]],{color,weight:5,opacity:.9}).addTo(plusMap).bindTooltip(plusEsc(i+'. '+prev.name+' → '+(i+1)+'. '+s.name));
+       legend.push({color,label:i+'. '+prev.name+' → '+(i+1)+'. '+s.name});
+     }
+   }
+ });
+ const legendEl=document.getElementById('plus-map-legend');
+ if(legendEl)legendEl.innerHTML=legend.length?legend.map(x=>`<div class="upgrade-route-chip"><span class="upgrade-route-swatch" style="background:${x.color}"></span>${plusEsc(x.label)}</div>`).join(''):'';
+ if(pts.length){plusMap.fitBounds(pts,{padding:[30,30],maxZoom:14});}else status.textContent='아직 핀 좌표가 없습니다. 장소별 핀 찾기를 눌러 위치를 저장하세요.';setTimeout(()=>plusMap&&plusMap.invalidateSize(),200);};
 window.geocodePlusStop=async function(id){const s=plusStop(id);if(!s)return;const out=document.getElementById('plus-map-stops');if(!out)return;const q=plusQuery(s);out.insertAdjacentHTML('afterbegin','<p class="upgrade-help" id="plus-loading">장소를 검색하고 있습니다…</p>');try{const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=5');if(!r.ok)throw Error('검색 서버 오류');const js=await r.json();const features=js.features||[];document.getElementById('plus-loading')?.remove();if(!features.length)return alert('검색 결과가 없습니다. 정확한 영문 지명으로 다시 시도해주세요.');const items=features.map(f=>({lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name:[f.properties.name,f.properties.city,f.properties.country].filter(Boolean).join(', ')}));plusCandidates=items;out.insertAdjacentHTML('afterbegin',`<div class="card"><b>${plusEsc(s.name)} 위치 선택</b>${items.map((it,i)=>`<div class="settings-row"><span style="font-size:12px">${plusEsc(it.name)}</span><button class="btn btn-primary btn-sm" onclick="assignPlusLocation('${plusEsc(id)}',${i})">이 위치 저장</button></div>`).join('')}</div>`);}catch(e){document.getElementById('plus-loading')?.remove();alert('장소 검색 실패: '+e.message);}};
 window.assignPlusLocation=function(id,index){if(!plusSafeToWrite())return;const s=plusStop(id),c=plusCandidates[index];if(!s||!c)return;s.lat=c.lat;s.lng=c.lng;save();drawUpgradeMap();};
 // Exchange rates are cached locally; existing expense records are not altered.
