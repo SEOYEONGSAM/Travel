@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.6.1</title>
+<title>Our Travel Book v3.6.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -687,7 +687,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.6.1</div>
+    <div class="sec-label">클라우드 저장 · v3.6.2</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -1146,12 +1146,15 @@ let cloudConflict=false;
 let cloudEditSequence=0;
 let cloudRevision=0;
 let cloudBaseFingerprint=null;
+let cloudBaseDB=null;
 let cloudLastServerDB=null;
 let authInstance=null;
 window.firebaseLoaded=false;
 const CLOUD_PENDING_KEY='tb_v35_pending';
-// v3.6.1: canonical fingerprint - Firestore may return map fields in a different order.
-// Treat objects with the same keys/values as identical, independent of insertion order.
+const CLOUD_BASE_KEY='tb_v362_base';
+// v3.6.2 Smart Sync
+// Canonical comparison + three-way merge. Different items edited on different devices
+// are merged automatically; only overlapping edits to the same field/item conflict.
 function cloudCanonical(value){
   if(Array.isArray(value))return value.map(cloudCanonical);
   if(value && typeof value==='object'){
@@ -1165,6 +1168,68 @@ function cloudCanonical(value){
   return value;
 }
 function cloudFingerprint(value){return JSON.stringify(cloudCanonical(value));}
+function cloudEqual(a,b){return cloudFingerprint(a)===cloudFingerprint(b);}
+function cloudClone(v){return v===undefined?undefined:JSON.parse(JSON.stringify(v));}
+function saveCloudBase(db){try{localStorage.setItem(CLOUD_BASE_KEY,JSON.stringify(db));}catch(e){}}
+function loadCloudBase(){try{const raw=localStorage.getItem(CLOUD_BASE_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}}
+const CLOUD_ABSENT=Symbol('tb_absent');
+function cloudEqualMaybe(a,b){
+  if(a===CLOUD_ABSENT||b===CLOUD_ABSENT)return a===b;
+  return cloudEqual(a,b);
+}
+function cloudCloneMaybe(v){return v===CLOUD_ABSENT?CLOUD_ABSENT:cloudClone(v);}
+function cloudArrayIdentity(arrays){
+  const values=arrays.flat().filter(v=>v&&typeof v==='object'&&!Array.isArray(v));
+  if(!values.length)return null;
+  if(values.length!==arrays.flat().length)return null;
+  for(const key of ['id','key']){
+    if(values.every(v=>v[key]!==undefined&&v[key]!==null)){
+      const ok=arrays.every(arr=>new Set(arr.map(v=>String(v[key]))).size===arr.length);
+      if(ok)return key;
+    }
+  }
+  return null;
+}
+function cloudMerge3(base,local,server,path='DB',conflicts=[]){
+  if(cloudEqualMaybe(local,base))return cloudCloneMaybe(server);
+  if(cloudEqualMaybe(server,base))return cloudCloneMaybe(local);
+  if(cloudEqualMaybe(local,server))return cloudCloneMaybe(local);
+
+  if(base===CLOUD_ABSENT||local===CLOUD_ABSENT||server===CLOUD_ABSENT){
+    conflicts.push(path);
+    return CLOUD_ABSENT;
+  }
+
+  if(Array.isArray(base)&&Array.isArray(local)&&Array.isArray(server)){
+    const key=cloudArrayIdentity([base,local,server]);
+    if(!key){conflicts.push(path);return CLOUD_ABSENT;}
+    const bm=new Map(base.map(v=>[String(v[key]),v]));
+    const lm=new Map(local.map(v=>[String(v[key]),v]));
+    const sm=new Map(server.map(v=>[String(v[key]),v]));
+    const order=[];
+    for(const arr of [server,local,base])for(const v of arr){const k=String(v[key]);if(!order.includes(k))order.push(k);}
+    const result=[];
+    for(const k of order){
+      const merged=cloudMerge3(bm.has(k)?bm.get(k):CLOUD_ABSENT,lm.has(k)?lm.get(k):CLOUD_ABSENT,sm.has(k)?sm.get(k):CLOUD_ABSENT,`${path}[${key}=${k}]`,conflicts);
+      if(merged!==CLOUD_ABSENT)result.push(merged);
+    }
+    return result;
+  }
+
+  const isObj=v=>v&&typeof v==='object'&&!Array.isArray(v);
+  if(isObj(base)&&isObj(local)&&isObj(server)){
+    const out={};
+    const keys=new Set([...Object.keys(base),...Object.keys(local),...Object.keys(server)]);
+    for(const k of keys){
+      const merged=cloudMerge3(Object.prototype.hasOwnProperty.call(base,k)?base[k]:CLOUD_ABSENT,Object.prototype.hasOwnProperty.call(local,k)?local[k]:CLOUD_ABSENT,Object.prototype.hasOwnProperty.call(server,k)?server[k]:CLOUD_ABSENT,`${path}.${k}`,conflicts);
+      if(merged!==CLOUD_ABSENT)out[k]=merged;
+    }
+    return out;
+  }
+
+  conflicts.push(path);
+  return CLOUD_ABSENT;
+}
 
 function showSyncStatus(message,kind='info'){
   const el=document.getElementById('cloud-sync-status');
@@ -1198,6 +1263,8 @@ window.tbUseServerVersion=function(){
   if(!cloudLastServerDB)return alert('최신 서버 데이터를 아직 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
   if(!confirm('먼저 미동기화 백업 파일을 다운로드했나요?\n확인하면 이 기기의 미저장 변경사항을 버리고 서버 최신 기록을 불러옵니다.'))return;
   DB=JSON.parse(JSON.stringify(cloudLastServerDB));
+  cloudBaseDB=cloudClone(cloudLastServerDB);
+  saveCloudBase(cloudBaseDB);
   cloudBaseFingerprint=cloudFingerprint(cloudLastServerDB);
   cloudDirty=false;cloudWriting=false;cloudConflict=false;
   localStorage.removeItem(CLOUD_PENDING_KEY);
@@ -1348,20 +1415,42 @@ function initCloudSync(){
         const record=snap.data();
         if(!record||!record.DB){authShow(true);authMessage('Firestore 문서에 DB 데이터가 없습니다. 저장하지 않고 중단했습니다.');return;}
         const sig=cloudFingerprint(record.DB);
-        cloudLastServerDB=record.DB;
+        cloudLastServerDB=cloudClone(record.DB);
         if(initial){
           initial=false;
           cloudRevision=Number(record.syncRevision||0);
+          cloudBaseDB=cloudClone(record.DB);
           cloudBaseFingerprint=sig;
           cloudReady=true;window.firebaseLoaded=true;
           authShow(false);
           if(localStorage.getItem(CLOUD_PENDING_KEY)==='1'){
-            // Previous session may have edited data not yet committed. Do not overwrite it.
-            cloudDirty=true;
-            conflictShow('이 기기에서 서버로 전송되지 않은 변경사항이 발견됐습니다. 로컬 백업을 먼저 다운로드하고 서버 데이터를 불러올지 선택해 주세요.');
+            // v3.6.2 can safely resume pending edits only when the exact edit base was persisted.
+            const persistedBase=loadCloudBase();
+            if(cloudEqual(DB,record.DB)){
+              cloudDirty=false;
+              localStorage.removeItem(CLOUD_PENDING_KEY);
+              DB=cloudClone(record.DB);
+              cloudBaseDB=cloudClone(record.DB);
+              saveCloudBase(cloudBaseDB);
+              saveLocalOnly();
+              renderAfterCloudSync();
+              showSyncStatus('클라우드 저장 완료','success');
+            }else if(persistedBase){
+              cloudBaseDB=cloudClone(persistedBase);
+              cloudDirty=true;
+              showSyncStatus('미동기화 변경 병합 중…','pending');
+              scheduleCloudSave();
+            }else{
+              // A pending draft created by v3.6/v3.6.1 has no reliable three-way merge base.
+              // Ask once rather than guessing and potentially overwriting a real remote edit.
+              cloudDirty=true;
+              conflictShow('이전 버전에서 남은 미동기화 변경사항이 있습니다. 안전한 자동 병합 기준이 없어 한 번만 확인이 필요합니다. 현재 기기 JSON 백업 후 서버 최신 기록을 불러오고 다시 수정해 주세요. 이후 v3.6.2 저장부터는 자동 병합됩니다.');
+            }
           }else{
             cloudApplyingRemote=true;
-            DB=record.DB;
+            DB=cloudClone(record.DB);
+            cloudBaseDB=cloudClone(record.DB);
+            saveCloudBase(cloudBaseDB);
             saveLocalOnly();
             cloudApplyingRemote=false;
             renderAfterCloudSync();
@@ -1371,13 +1460,15 @@ function initCloudSync(){
           return;
         }
         if(cloudDirty||cloudWriting||cloudConflict){
-          // Keep local draft. Firestore transaction below verifies exact server version.
+          // Keep the local draft; the transaction will merge non-overlapping remote changes.
           return;
         }
         cloudRevision=Number(record.syncRevision||0);
+        cloudBaseDB=cloudClone(record.DB);
+        saveCloudBase(cloudBaseDB);
         cloudBaseFingerprint=sig;
         cloudApplyingRemote=true;
-        DB=record.DB;
+        DB=cloudClone(record.DB);
         saveLocalOnly();
         cloudApplyingRemote=false;
         renderAfterCloudSync();
@@ -1400,50 +1491,65 @@ async function flushCloudSave(){
   if(!cloudReady||cloudWriting||cloudConflict||!cloudDirty||!cloudRoomRef)return;
   cloudWriting=true;
   const startingSequence=cloudEditSequence;
-  const expectedRevision=cloudRevision;
-  const expectedFingerprint=cloudBaseFingerprint;
-  // Snapshot the exact draft to be sent. Later edits wait for the next transaction.
-  const draft=JSON.parse(JSON.stringify(DB));
+  const draft=cloudClone(DB);
+  const base=cloudClone(cloudBaseDB||cloudLastServerDB||DB);
   try{
     const result=await cloudDb.runTransaction(async tx=>{
       const snap=await tx.get(cloudRoomRef);
       if(!snap.exists||!snap.data()?.DB)throw Error('TB_DOC_MISSING');
       const server=snap.data();
-      const serverRevision=Number(server.syncRevision||0);
-      const serverFingerprint=cloudFingerprint(server.DB);
-      if(serverRevision!==expectedRevision||serverFingerprint!==expectedFingerprint)throw Error('TB_CONFLICT');
-      const nextRevision=serverRevision+1;
+      const serverDB=server.DB;
+      const conflicts=[];
+      const merged=cloudMerge3(base,draft,serverDB,'DB',conflicts);
+      if(conflicts.length){
+        const err=Error('TB_CONFLICT:'+conflicts.slice(0,5).join('|'));
+        err.tbConflicts=conflicts;
+        throw err;
+      }
+      const nextRevision=Number(server.syncRevision||0)+1;
       tx.update(cloudRoomRef,{
-        DB:draft,
+        DB:merged,
         syncRevision:nextRevision,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy:authInstance?.currentUser?.uid||'unknown'
       });
-      return nextRevision;
+      return {nextRevision,merged};
     });
-    cloudRevision=result;
-    cloudBaseFingerprint=cloudFingerprint(draft);
-    cloudLastServerDB=draft;
+    cloudRevision=result.nextRevision;
+    cloudBaseDB=cloudClone(result.merged);
+    saveCloudBase(cloudBaseDB);
+    cloudBaseFingerprint=cloudFingerprint(result.merged);
+    cloudLastServerDB=cloudClone(result.merged);
     if(cloudEditSequence===startingSequence){
+      DB=cloudClone(result.merged);
       cloudDirty=false;
       localStorage.removeItem(CLOUD_PENDING_KEY);
+      saveLocalOnly();
+      renderAfterCloudSync();
       showSyncStatus('클라우드 저장 완료','success');
     }else{
+      // Preserve edits made while the transaction was running, then merge again.
       showSyncStatus('추가 변경 저장 중…','pending');
     }
   }catch(err){
-    console.error('Guarded Firestore save failed:',err);
-    if(String(err.message||'').includes('TB_CONFLICT')||String(err.message||'').includes('TB_DOC_MISSING')){
-      conflictShow('다른 기기에서 데이터가 변경됐거나 기존 문서를 찾을 수 없습니다. 현재 기기 기록은 서버에 덮어쓰지 않았습니다. 먼저 로컬 JSON 백업을 다운로드해 주세요.');
+    console.error('Smart Firestore save failed:',err);
+    const msg=String(err.message||'');
+    if(msg.includes('TB_CONFLICT')){
+      const detail=(err.tbConflicts||[]).slice(0,3).join(', ');
+      conflictShow('같은 항목을 두 기기에서 서로 다르게 수정한 부분이 감지되었습니다.'+(detail?'\n충돌 위치: '+detail:'')+'\n현재 기기 내용은 서버에 덮어쓰지 않았습니다. 먼저 JSON 백업을 다운로드해 주세요.');
+    }else if(msg.includes('TB_DOC_MISSING')){
+      conflictShow('기존 Firestore 문서를 찾을 수 없습니다. 현재 기기 기록은 서버에 덮어쓰지 않았습니다. JSON 백업 후 Firebase 문서를 확인해 주세요.');
     }else{
       showSyncStatus('서버 저장 실패 · 로컬 변경 보관 중','error');
-      // Do not silently discard or overwrite local edits on network/security failures.
     }
   }finally{
     cloudWriting=false;
-    if(cloudDirty&&!cloudConflict&&cloudEditSequence!==startingSequence)scheduleCloudSave();
+    if(cloudDirty&&!cloudConflict){
+      if(cloudEditSequence!==startingSequence)scheduleCloudSave();
+    }
   }
 }
+
 function seed(){
   DB.trips=[
     {id:'t1',name:'체코 여행',country:'🇨🇿 체코',date:'이전 여행',startDate:'',endDate:'',emoji:'🏰',
