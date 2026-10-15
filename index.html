@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.6.4</title>
+<title>Our Travel Book v3.6.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -687,7 +687,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.6.4</div>
+    <div class="sec-label">클라우드 저장 · v3.6.6</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -3300,7 +3300,7 @@ window.exportPDF=function(){
  .upgrade-overlay{position:fixed;inset:0;z-index:1100;background:rgba(30,10,5,.55);display:none;align-items:center;justify-content:center;padding:12px}
  .upgrade-overlay.show{display:flex}.upgrade-panel{background:var(--cream);border-radius:20px;padding:18px;width:100%;max-width:650px;max-height:94vh;overflow:auto;color:var(--ink)}
  .upgrade-label{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}.upgrade-input{width:100%;padding:10px;border:1.5px solid var(--subtle);border-radius:10px;background:var(--white);color:var(--ink);font:inherit}
- .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-route-legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}.upgrade-route-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--white);border:1px solid var(--subtle);border-radius:999px;padding:4px 7px}.upgrade-route-swatch{width:18px;height:4px;border-radius:999px;display:inline-block;flex:0 0 auto}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
+ .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.plus-geocode-inline{margin-top:6px}.plus-geocode-card{background:var(--white);border:1px solid var(--subtle);border-radius:10px;padding:9px;margin-top:6px}.upgrade-route-legend{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}.upgrade-route-chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);background:var(--white);border:1px solid var(--subtle);border-radius:999px;padding:4px 7px}.upgrade-route-swatch{width:18px;height:4px;border-radius:999px;display:inline-block;flex:0 0 auto}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
 </style>
 <div class="upgrade-overlay" id="upgrade-overlay"><div class="upgrade-panel">
  <div class="flex-between"><div class="page-title" style="font-size:23px">Travel Book · Plus</div><button class="btn btn-ghost btn-sm" onclick="closeUpgrade()">✕ 닫기</button></div>
@@ -3481,11 +3481,75 @@ window.openDayRoute=function(){const t=plusGetTrip();if(!t)return;const date=doc
  const provider=groups[0].provider;if(provider!=='google'){alert(plusProviderNames[provider]+'는 여러 경유지 동시 연결이 제한되어 첫 장소를 엽니다.');window.open(plusUrlForStop(items[0],provider),'_blank','noopener,noreferrer');return;}
  const a=items.map(x=>x.mapAddress?plusQuery(x):(x.lat!==undefined&&x.lng!==undefined?x.lat+','+x.lng:plusQuery(x)));if(a.length===1)return window.open(plusUrlForStop(items[0],'google'),'_blank','noopener,noreferrer');const chosen=a.slice(0,5);const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(chosen[0])+'&destination='+encodeURIComponent(chosen[chosen.length-1])+(chosen.length>2?'&waypoints='+encodeURIComponent(chosen.slice(1,-1).join('|')):'');window.open(url,'_blank','noopener,noreferrer');if(a.length>5)alert('첫 5개 장소만 경로에 포함했습니다.');};
 window.openGoogleDay=window.openDayRoute;
-window.openUpgradeMap=function(){const t=plusGetTrip();if(!t)return plusShow('<p>여행 탭에서 여행을 먼저 선택한 다음 지도 보기를 열어주세요.</p><button class="btn btn-subtle" onclick="openUpgradeCenter()">뒤로</button>');const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');const selected=plusSettings.providers?.[t.id]||'auto';const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 국가를 모르는 장소는 날짜의 국가를 선택하세요. 장소별 지도 앱 변경도 가능합니다.</p><div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div><select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select><div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select><div id="plus-day-country"></div><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-legend" class="upgrade-route-legend"></div><div id="plus-map-stops"></div><div class="upgrade-buttonrow"><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);setTimeout(drawUpgradeMap,80);};
+window.openUpgradeMap=function(){
+ const t=plusGetTrip();
+ if(!t)return plusShow('<p>여행 탭에서 여행을 먼저 선택한 다음 지도 보기를 열어주세요.</p><button class="btn btn-subtle" onclick="openUpgradeCenter()">뒤로</button>');
+ plusMapPreviewOpen=false;
+ const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');
+ const selected=plusSettings.providers?.[t.id]||'auto';
+ const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');
+ plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 장소별 지도 검색은 아래 버튼으로 바로 열 수 있습니다.</p>
+ <div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div>
+ <select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select>
+ <div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select>
+ <div id="plus-day-country"></div>
+ <div class="upgrade-buttonrow"><button class="btn btn-subtle btn-sm" id="plus-map-preview-btn" onclick="toggleUpgradeMapPreview()">🎨 동선 미리보기</button><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button></div>
+ <div id="plus-map-preview-wrap" style="display:none"><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-legend" class="upgrade-route-legend"></div></div>
+ <div id="plus-map-stops"></div>
+ <div class="upgrade-buttonrow"><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);
+ setTimeout(drawUpgradeMap,50);
+};
+async function plusAutoGeocodeDayStops(){
+ const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value;
+ if(!t||!date)return {found:0,missing:0,failed:0};
+ const arr=t.stops?.[date]||[];
+ const missing=arr.filter(s=>{
+   const lat=Number(s?.lat),lng=Number(s?.lng);
+   return s&&(!Number.isFinite(lat)||!Number.isFinite(lng));
+ });
+ if(!missing.length)return {found:0,missing:0,failed:0};
+ if(!plusSafeToWrite())return {found:0,missing:missing.length,failed:missing.length};
+ let found=0,failed=0;
+ const status=document.getElementById('plus-map-status');
+ for(let i=0;i<missing.length;i++){
+   const s=missing[i];
+   if(status)status.textContent=`위치 자동 검색 중… ${i+1}/${missing.length} · ${s.name||'장소'}`;
+   try{
+     const q=plusQuery(s);
+     const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=1');
+     if(!r.ok)throw Error('검색 서버 오류');
+     const js=await r.json(),f=js.features?.[0];
+     const lat=Number(f?.geometry?.coordinates?.[1]),lng=Number(f?.geometry?.coordinates?.[0]);
+     if(!Number.isFinite(lat)||!Number.isFinite(lng)){failed++;continue;}
+     s.lat=lat;s.lng=lng;found++;
+   }catch(e){failed++;}
+   // Keep automatic batch lookup gentle on the public geocoding service.
+   if(i<missing.length-1)await new Promise(resolve=>setTimeout(resolve,250));
+ }
+ if(found)save();
+ return {found,missing:missing.length,failed};
+}
+window.toggleUpgradeMapPreview=async function(){
+ plusMapPreviewOpen=!plusMapPreviewOpen;
+ const wrap=document.getElementById('plus-map-preview-wrap');
+ const btn=document.getElementById('plus-map-preview-btn');
+ if(wrap)wrap.style.display=plusMapPreviewOpen?'block':'none';
+ if(btn)btn.textContent=plusMapPreviewOpen?'지도 닫기':'🎨 동선 미리보기';
+ if(!plusMapPreviewOpen){if(plusMap){plusMap.remove();plusMap=null;}return;}
+ const result=await plusAutoGeocodeDayStops();
+ drawUpgradeMap();
+ const status=document.getElementById('plus-map-status');
+ if(status&&result.missing){
+   if(result.failed===0)status.textContent=`좌표 없는 장소 ${result.found}곳을 자동으로 찾아 저장했습니다.`;
+   else if(result.found)status.textContent=`${result.found}곳은 자동으로 찾았고 ${result.failed}곳은 찾지 못했습니다. 못 찾은 장소만 ‘핀 찾기’로 확인해 주세요.`;
+   else status.textContent='자동으로 위치를 찾지 못했습니다. 지도 검색용 주소를 더 정확히 입력하거나 해당 장소의 ‘핀 찾기’를 사용해 주세요.';
+ }
+ setTimeout(()=>plusMap&&plusMap.invalidateSize(),100);
+};
 window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value,el=document.getElementById('plus-map');if(!t||!el)return;const arr=t.stops?.[date]||[];
  const dayCode=t.dateCountries?.[date]||'';document.getElementById('plus-day-country').innerHTML=`<div class="upgrade-label">이 날짜의 국가 ${!dayCode?'(자동: '+plusEsc(plusDateCountry(t,date)||'미지정')+')':''}</div>${plusCountrySelect(dayCode,'setPlusDayCountry')}`;
- document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:4px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div>${s.mapAddress?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">📍 지도 검색: ${plusEsc(s.mapAddress)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
- if(plusMap){plusMap.remove();plusMap=null;}const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
+ document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:4px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div>${s.mapAddress?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">📍 지도 검색: ${plusEsc(s.mapAddress)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div><div id="plus-geocode-${plusEsc(s.id)}" class="plus-geocode-inline"></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
+ if(plusMap){plusMap.remove();plusMap=null;}if(!plusMapPreviewOpen)return;const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
  plusMap=L.map(el).setView([36,128],4);
  // Key-free OpenStreetMap tiles. No API key is required.
  const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(plusMap);
@@ -3509,8 +3573,23 @@ window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementB
  const legendEl=document.getElementById('plus-map-legend');
  if(legendEl)legendEl.innerHTML=legend.length?legend.map(x=>`<div class="upgrade-route-chip"><span class="upgrade-route-swatch" style="background:${x.color}"></span>${plusEsc(x.label)}</div>`).join(''):'';
  if(pts.length){plusMap.fitBounds(pts,{padding:[30,30],maxZoom:14});}else status.textContent='아직 핀 좌표가 없습니다. 장소별 핀 찾기를 눌러 위치를 저장하세요.';setTimeout(()=>plusMap&&plusMap.invalidateSize(),200);};
-window.geocodePlusStop=async function(id){const s=plusStop(id);if(!s)return;const out=document.getElementById('plus-map-stops');if(!out)return;const q=plusQuery(s);out.insertAdjacentHTML('afterbegin','<p class="upgrade-help" id="plus-loading">장소를 검색하고 있습니다…</p>');try{const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=5');if(!r.ok)throw Error('검색 서버 오류');const js=await r.json();const features=js.features||[];document.getElementById('plus-loading')?.remove();if(!features.length)return alert('검색 결과가 없습니다. 정확한 영문 지명으로 다시 시도해주세요.');const items=features.map(f=>({lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name:[f.properties.name,f.properties.city,f.properties.country].filter(Boolean).join(', ')}));plusCandidates=items;out.insertAdjacentHTML('afterbegin',`<div class="card"><b>${plusEsc(s.name)} 위치 선택</b>${items.map((it,i)=>`<div class="settings-row"><span style="font-size:12px">${plusEsc(it.name)}</span><button class="btn btn-primary btn-sm" onclick="assignPlusLocation('${plusEsc(id)}',${i})">이 위치 저장</button></div>`).join('')}</div>`);}catch(e){document.getElementById('plus-loading')?.remove();alert('장소 검색 실패: '+e.message);}};
-window.assignPlusLocation=function(id,index){if(!plusSafeToWrite())return;const s=plusStop(id),c=plusCandidates[index];if(!s||!c)return;s.lat=c.lat;s.lng=c.lng;save();drawUpgradeMap();};
+window.geocodePlusStop=async function(id){
+ const s=plusStop(id);if(!s)return;
+ document.querySelectorAll('.plus-geocode-inline').forEach(x=>{if(x.id!=='plus-geocode-'+id)x.innerHTML='';});
+ const out=document.getElementById('plus-geocode-'+id);if(!out)return;
+ const q=plusQuery(s);
+ out.innerHTML='<div class="upgrade-help" style="padding:7px 0">장소를 검색하고 있습니다…</div>';
+ try{
+   const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=5');
+   if(!r.ok)throw Error('검색 서버 오류');
+   const js=await r.json();const features=js.features||[];
+   if(!features.length){out.innerHTML='<div class="upgrade-help" style="padding:7px 0">검색 결과가 없습니다. 지도 검색용 주소를 더 정확하게 입력해 주세요.</div>';return;}
+   const items=features.map(f=>({lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name:[f.properties.name,f.properties.city,f.properties.country].filter(Boolean).join(', ')}));
+   plusCandidates=items;
+   out.innerHTML=`<div class="plus-geocode-card"><b>${plusEsc(s.name)} 위치 선택</b>${items.map((it,i)=>`<div class="settings-row" style="padding:7px 0"><span style="font-size:12px;flex:1">${plusEsc(it.name)}</span><button class="btn btn-primary btn-sm" onclick="assignPlusLocation('${plusEsc(id)}',${i})">저장</button></div>`).join('')}<button class="btn btn-ghost btn-sm" onclick="document.getElementById('plus-geocode-${plusEsc(id)}').innerHTML=''">닫기</button></div>`;
+ }catch(e){out.innerHTML='<div class="upgrade-help" style="padding:7px 0">장소 검색 실패: '+plusEsc(e.message)+'</div>';}
+};
+window.assignPlusLocation=function(id,index){if(!plusSafeToWrite())return;const s=plusStop(id),c=plusCandidates[index];if(!s||!c)return;s.lat=c.lat;s.lng=c.lng;save();const box=document.getElementById('plus-geocode-'+id);if(box)box.innerHTML='';drawUpgradeMap();};
 // Exchange rates are cached locally; existing expense records are not altered.
 // USD base rates -> KRW and AED, with initial legacy values if the API is unavailable.
 async function refreshExchangeRates(notify=false){try{const r=await fetch('https://api.frankfurter.dev/v1/latest?base=USD');if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json(),rate=j.rates;if(!rate?.KRW||!rate?.AED)throw Error('지원 통화 부족');const krw=rate.KRW,aed=rate.AED;for(const c of Object.keys(R2K)){if(c==='KRW'){R2K[c]=1;R2A[c]=aed/krw;}else if(c==='USD'){R2K[c]=krw;R2A[c]=aed;}else if(rate[c]){R2K[c]=krw/rate[c];R2A[c]=aed/rate[c];}}plusRates={date:j.date,ts:Date.now(),krw:{...R2K},aed:{...R2A}};localStorage.setItem(PLUS_FX_KEY,JSON.stringify(plusRates));updateFXStatus();renderAfterCloudSync();if(notify)alert('기준일 '+j.date+' 환율 업데이트 완료. 기존 지출 금액은 유지됩니다.');}catch(e){if(notify)alert('환율 업데이트 실패: '+e.message+'\n기존/캐시 환율로 계속 표시합니다.');updateFXStatus();}}
@@ -3537,7 +3616,7 @@ updateFXStatus();if(!plusRates||Date.now()-plusRates.ts>24*3600000)refreshExchan
  .upgrade-overlay{position:fixed;inset:0;z-index:1100;background:rgba(30,10,5,.55);display:none;align-items:center;justify-content:center;padding:12px}
  .upgrade-overlay.show{display:flex}.upgrade-panel{background:var(--cream);border-radius:20px;padding:18px;width:100%;max-width:650px;max-height:94vh;overflow:auto;color:var(--ink)}
  .upgrade-label{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}.upgrade-input{width:100%;padding:10px;border:1.5px solid var(--subtle);border-radius:10px;background:var(--white);color:var(--ink);font:inherit}
- .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
+ .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.plus-geocode-inline{margin-top:6px}.plus-geocode-card{background:var(--white);border:1px solid var(--subtle);border-radius:10px;padding:9px;margin-top:6px}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
 </style>
 <div class="upgrade-overlay" id="upgrade-overlay"><div class="upgrade-panel">
  <div class="flex-between"><div class="page-title" style="font-size:23px">Travel Book · Plus</div><button class="btn btn-ghost btn-sm" onclick="closeUpgrade()">✕ 닫기</button></div>
