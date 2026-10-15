@@ -517,6 +517,11 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   .route-actions .move-btns{margin-left:0}
 }
 
+ .expense-trip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:9px}
+ .expense-trip-overview{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:1px solid var(--subtle);padding:12px;border-radius:12px;background:var(--warm);color:var(--ink);cursor:pointer;min-width:0;width:100%}
+ .expense-trip-overview small{font-size:11px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+ .approval-item{border-bottom:1px solid var(--subtle);padding:10px 0;overflow-wrap:anywhere}
+ @media(max-width:600px){.expense-trip-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -719,7 +724,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">데이터</div>
+    <div class="sec-label">데이터</div><div class="settings-row"><div><div class="settings-label">삭제 승인 및 휴지통</div><div class="settings-sub">여행·지출 삭제는 두 사람 승인 필요</div></div><button class="btn btn-ghost btn-sm" onclick="goPage('expenses',document.getElementById('nav-expenses'));renderGlobalExpenses();openDeletionPanel()">열기</button></div>
     <div class="settings-row">
       <div><div class="settings-label">백업 내보내기</div><div class="settings-sub">JSON 파일로 저장</div></div>
       <button class="btn btn-subtle btn-sm" onclick="exportBackup()">내보내기</button>
@@ -742,7 +747,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 
   <div class="card" id="upgrade-settings">
     <div class="sec-label">✨ 여행 앱 확장 기능</div>
-    <div class="settings-row"><div><div class="settings-label">지도·메모·시트</div><div class="settings-sub">지도 보기, 메모 자동 분류, 외부 데이터 동기화</div></div><button class="btn btn-primary btn-sm" onclick="openUpgradeCenter()">열기</button></div>
+    <div class="settings-row"><div><div class="settings-label">지도·메모·환율</div><div class="settings-sub">지도 보기, 메모 일정 변환, 환율</div></div><button class="btn btn-primary btn-sm" onclick="openUpgradeCenter()">열기</button></div>
     <div class="settings-row"><div><div class="settings-label">환율 자동 업데이트</div><div class="settings-sub" id="fx-status">기본 환율 사용 중</div></div><button class="btn btn-subtle btn-sm" onclick="refreshExchangeRates(true)">갱신</button></div>
     <div class="settings-row"><div><div class="settings-label">데이터 백업</div><div class="settings-sub">업데이트 전 JSON 백업을 권장합니다.</div></div><button class="btn btn-subtle btn-sm" onclick="exportBackup()">백업</button></div>
   </div>
@@ -1285,7 +1290,7 @@ function renderAfterCloudSync(){
   if(typeof loadSettings==='function') loadSettings();
   if(CTI && typeof renderTripDetail==='function'){
     const trip=DB.trips.find(t=>t.id===CTI);
-    if(trip) renderTripDetail(trip);
+    if(trip&&!trip._archived) renderTripDetail(trip);
   }
 }
 
@@ -1300,6 +1305,7 @@ function initCloudSync(){
     authInstance=firebase.auth();
     authInstance.onAuthStateChanged(user=>{
       if(cloudUnsubscribe){cloudUnsubscribe();cloudUnsubscribe=null;}
+      if(deletionUnsubscribe){deletionUnsubscribe();deletionUnsubscribe=null;deletionRequests=[];}
       clearTimeout(cloudSaveTimer);
       cloudReady=false;window.firebaseLoaded=false;
       if(!user){
@@ -1345,6 +1351,7 @@ function initCloudSync(){
             renderAfterCloudSync();
             showSyncStatus('클라우드 저장 완료','success');
           }
+          observeDeletionRequests();
           return;
         }
         if(cloudDirty||cloudWriting||cloudConflict){
@@ -1539,7 +1546,7 @@ function renderHome(){
 
 function renderHomeStats(){
   const el=document.getElementById('home-stats');
-  const done=DB.trips.filter(t=>t.status==='done');
+  const done=DB.trips.filter(t=>!t._archived&&t.status==='done');
   const countries=new Set(done.map(t=>t.country).filter(Boolean)).size;
   const nights=done.reduce((sum,t)=>{
     if(t.startDate&&t.endDate){
@@ -1568,7 +1575,7 @@ function renderHomeStats(){
 
 function renderDday(){
   const strip=document.getElementById('dday-strip');
-  const planned=DB.trips.filter(t=>t.status==='plan'||t.status==='future');
+  const planned=DB.trips.filter(t=>!t._archived&&(t.status==='plan'||t.status==='future'));
   const future=planned.filter(t=>t.startDate).sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   if(!future.length){strip.innerHTML='';return;}
   const next=future[0];
@@ -1598,7 +1605,7 @@ function renderHomeCal(){
 
   // gather all events for this month
   const allEvents=[
-    ...DB.trips.filter(t=>t.startDate).map(t=>({id:t.id,type:'travel',name:t.name,start:t.startDate,end:t.endDate||t.startDate,color:EVENT_COLORS.travel,tripId:t.id})),
+    ...DB.trips.filter(t=>!t._archived&&t.startDate).map(t=>({id:t.id,type:'travel',name:t.name,start:t.startDate,end:t.endDate||t.startDate,color:EVENT_COLORS.travel,tripId:t.id})),
     ...DB.events.map(e=>({id:e.id,type:e.type,name:e.name,start:e.startDate,end:e.endDate||e.startDate,color:EVENT_COLORS[e.type]||EVENT_COLORS.memo,eventId:e.id}))
   ];
 
@@ -1660,7 +1667,7 @@ window.selectDay=function(k,day){
 
 function renderUpcoming(){
   const now=new Date().toISOString().split('T')[0];
-  const upcoming=DB.trips.filter(t=>t.startDate&&t.startDate>=now).sort((a,b)=>new Date(a.startDate)-new Date(b.startDate)).slice(0,3);
+  const upcoming=DB.trips.filter(t=>!t._archived&&t.startDate&&t.startDate>=now).sort((a,b)=>new Date(a.startDate)-new Date(b.startDate)).slice(0,3);
   const el=document.getElementById('home-upcoming');
   if(!upcoming.length){el.innerHTML='';return;}
   el.innerHTML=`<div class="sec-label" style="margin-top:4px">예정된 여행</div>`+
@@ -1733,7 +1740,7 @@ function renderTrips(){
   const sl={done:'badge-done',plan:'badge-plan',future:'badge-future'};
   const st={done:'✅ 다녀왔어요',plan:'🌟 계획 중',future:'💭 가고 싶어요'};
   document.getElementById('trips-grid').innerHTML=
-    DB.trips.map(t=>`<div class="trip-card" onclick="openTrip('${t.id}')">
+    DB.trips.filter(t=>!t._archived).map(t=>`<div class="trip-card" onclick="openTrip('${t.id}')">
       <div class="trip-cover" style="background:${t.color}">
         <div class="trip-cover-actions">
           <button class="icon-btn" style="width:26px;height:26px;font-size:11px" onclick="event.stopPropagation();editTrip('${t.id}')">✏️</button>
@@ -1754,7 +1761,7 @@ function renderTrips(){
 
 window.openTrip=function(id){
   CTI=id;curSub='pretip';
-  const trip=DB.trips.find(t=>t.id===id);if(!trip)return;
+  const trip=DB.trips.find(t=>t.id===id&&!t._archived);if(!trip)return;
   curDK=trip.dates[0]?.key||null;
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2623,7 +2630,7 @@ window.generateBlogHTML = function(){
 
   // ── 지출 요약
   if(inclExpense){
-    const exps = DB.expenses.filter(e => e.tripId === trip.id);
+    const exps = DB.expenses.filter(e => e.tripId === trip.id && !e._archived);
     if(exps.length){
       const totalK = exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
       const byPerson = {me:0, partner:0};
@@ -2825,15 +2832,16 @@ function renderGlobalExpenses(){
   // 여행별 필터 탭
   const tripTabs=`<div class="chips-row" style="margin-bottom:14px">
     <div class="chip ${globalExpTripFilter==='all'?'active':''}" onclick="setExpTripFilter('all')">전체</div>
-    ${DB.trips.map(t=>`<div class="chip ${globalExpTripFilter===t.id?'active':''}" onclick="setExpTripFilter('${t.id}')">${t.emoji} ${t.name}</div>`).join('')}
+    ${DB.trips.filter(t=>!t._archived).map(t=>`<div class="chip ${globalExpTripFilter===t.id?'active':''}" onclick="setExpTripFilter('${t.id}')">${t.emoji} ${t.name}</div>`).join('')}
   </div>`;
 
-  const exps=globalExpTripFilter==='all'?DB.expenses:DB.expenses.filter(e=>e.tripId===globalExpTripFilter);
-  let html=tripTabs+expSummaryHTML(exps);
+  const exps=(globalExpTripFilter==='all'?DB.expenses:DB.expenses.filter(e=>e.tripId===globalExpTripFilter)).filter(e=>!e._archived && !DB.trips.find(t=>t.id===e.tripId)?._archived);
+  let html=travelExpenseOverview()+tripTabs+expSummaryHTML(exps);
   html+=`<div style="font-size:11px;color:var(--muted);margin-bottom:10px">💡 환율 참고: 1 AED ≈ ₩370 · 1 JPY ≈ ₩9.3</div>`;
   html+=expTableHTML(exps);
-  html+=`<button class="btn btn-primary btn-full mt-12" onclick="openExpenseModal(null)">＋ 지출 추가</button>`;
-  el.innerHTML=html;
+  html+=`<button class="btn btn-primary btn-full mt-12" onclick="openExpenseModal(null)">＋ 지출 추가</button><button class="btn btn-ghost btn-full mt-12" onclick="openDeletionPanel()">🔐 삭제 승인 / 휴지통</button>`;
+  el.innerHTML=html+'<div id="deletion-requests-list"></div>';
+  renderDeletionPanel();
   const ce=Object.entries(exps.reduce((a,e)=>{if(!a[e.cat])a[e.cat]=0;a[e.cat]+=toK(e.amount,e.currency);return a},{})).sort((a,b)=>b[1]-a[1]);
   const totalK=exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
   if(ce.length&&totalK>0)setTimeout(()=>drawDonut(ce,['#f4a7b9','#f9c784','#d4c5e8','#90caf9','#c9954a','#b8d4b0','#c0c0c0'],totalK),60);
@@ -2845,7 +2853,7 @@ function renderTripExpenses(trip){
   document.getElementById('ex-opt-me').textContent=DB.settings.name1;
   document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
   renderCatSelect();
-  const exps=DB.expenses.filter(e=>e.tripId===trip.id);
+  const exps=DB.expenses.filter(e=>e.tripId===trip.id && !e._archived);
   const totalK=exps.reduce((s,e)=>s+toK(e.amount,e.currency),0);
   if(!trip.budget)trip.budget=0;
   const budgetBar=`<div class="card" style="padding:12px 14px;margin-bottom:12px">
@@ -2874,7 +2882,8 @@ function renderTripExpenses(trip){
   html+=expTableHTML(fe);
   html+=`<div class="flex-row mt-12"><button class="btn btn-primary" onclick="openExpenseModal('${trip.id}')">＋ 지출 추가</button></div>`;
   html+=`<div style="font-size:11px;color:var(--muted);margin-top:7px">💡 1 AED ≈ ₩370 · 1 JPY ≈ ₩9.3</div>`;
-  el.innerHTML=html;
+  el.innerHTML=html+'<div id="deletion-requests-list"></div>';
+  renderDeletionPanel();
   const ce=Object.entries(exps.reduce((a,e)=>{if(!a[e.cat])a[e.cat]=0;a[e.cat]+=toK(e.amount,e.currency);return a},{})).sort((a,b)=>b[1]-a[1]);
   if(ce.length&&totalK>0)setTimeout(()=>drawDonut(ce,['#f4a7b9','#f9c784','#d4c5e8','#90caf9','#c9954a','#b8d4b0','#c0c0c0'],totalK),60);
 }
@@ -2895,7 +2904,7 @@ function drawDonut(ce,colors,total){
   ctx.fillText('지출',cx,cy);
 }
 
-window.setED=function(k){curDK=k;const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);};
+window.setED=function(k){curDK=k;const t=DB.trips.find(x=>x.id===CTI);if(t&&!t._archived)renderTripExpenses(t);};
 window.openExpenseModal=function(tripId){
   editId=null;renderCatSelect();
   document.getElementById('mex-title').textContent='지출 추가 💴';
@@ -2912,13 +2921,13 @@ window.openExpenseModal=function(tripId){
   document.getElementById('ex-method').value='card';
   // 여행 드롭다운 채우기
   const sel=document.getElementById('ex-trip');
-  sel.innerHTML=`<option value="">-- 여행 선택 --</option>`+DB.trips.map(t=>`<option value="${t.id}">${t.emoji||''} ${t.name}</option>`).join('');
+  sel.innerHTML=`<option value="">-- 여행 선택 --</option>`+DB.trips.filter(t=>!t._archived).map(t=>`<option value="${t.id}">${t.emoji||''} ${t.name}</option>`).join('');
   sel.value=tripId||CTI||'';
   openModal('modal-expense');
 };
 window.editExpense=function(id){
   renderCatSelect();
-  const e=DB.expenses.find(x=>x.id===id);if(!e)return;editId=id;
+  const e=DB.expenses.find(x=>x.id===id&&!x._archived);if(!e)return;editId=id;
   document.getElementById('mex-title').textContent='지출 수정 ✏️';
   document.getElementById('ex-opt-me').textContent=DB.settings.name1;
   document.getElementById('ex-opt-partner').textContent=DB.settings.name2;
@@ -2936,7 +2945,7 @@ window.editExpense=function(id){
   document.getElementById('ex-note').value=e.note||'';
   // 여행 드롭다운 채우기
   const sel2=document.getElementById('ex-trip');
-  sel2.innerHTML=`<option value="">-- 여행 선택 --</option>`+DB.trips.map(t=>`<option value="${t.id}">${t.emoji||''} ${t.name}</option>`).join('');
+  sel2.innerHTML=`<option value="">-- 여행 선택 --</option>`+DB.trips.filter(t=>!t._archived).map(t=>`<option value="${t.id}">${t.emoji||''} ${t.name}</option>`).join('');
   sel2.value=e.tripId||'';
   openModal('modal-expense');
 };
@@ -2978,20 +2987,88 @@ window.saveExpense=function(){
 
   if(curSub==='expenses'&&CTI){
     const t=DB.trips.find(x=>x.id===CTI);
-    if(t)renderTripExpenses(t);
+    if(t&&!t._archived)renderTripExpenses(t);
   }else{
     renderGlobalExpenses();
   }
 };
 window.toggleExpenseSettled=function(id){
-  const e=DB.expenses.find(x=>x.id===id);if(!e)return;
+  const e=DB.expenses.find(x=>x.id===id&&!x._archived);if(!e)return;
   e.settled=!e.settled;
   e.settledAt=e.settled?new Date().toISOString():null;
   save();
-  if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}else renderGlobalExpenses();
+  if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t&&!t._archived)renderTripExpenses(t);}else renderGlobalExpenses();
 };
-window.deleteExpense=function(id){if(!confirm('삭제?'))return;DB.expenses=DB.expenses.filter(x=>x.id!==id);save();
-  if(curSub==='expenses'&&CTI){const t=DB.trips.find(x=>x.id===CTI);if(t)renderTripExpenses(t);}else renderGlobalExpenses();};
+window.deleteExpense=function(id){requestProtectedDeletion('expense',id);};
+
+
+// V3.6: approval requests are stored in a separate Firestore subcollection.
+// Records are only archived after approval and remain recoverable.
+let deletionUnsubscribe=null, deletionRequests=[];
+const deletionCollection=()=>cloudRoomRef?.collection('deletionRequests');
+const deletionUser=()=>authInstance?.currentUser?.uid||'';
+function deletionSafeText(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function deletionTarget(type,id){return (type==='trip'?DB.trips:DB.expenses).find(x=>x.id===id);}
+function deletionDisplay(type,id){const x=deletionTarget(type,id);return x?(x.name||id):id;}
+function deletionUiRefresh(){if(typeof renderTrips==='function')renderTrips();if(typeof renderGlobalExpenses==='function')renderGlobalExpenses();if(CTI){const t=DB.trips.find(x=>x.id===CTI);if(t&&!t._archived&&typeof renderTripDetail==='function')renderTripDetail(t);}}
+function observeDeletionRequests(){
+  if(deletionUnsubscribe)deletionUnsubscribe();
+  if(!cloudRoomRef||!deletionUser())return;
+  deletionUnsubscribe=deletionCollection().onSnapshot(s=>{
+    deletionRequests=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const el=document.getElementById('deletion-requests-list');if(el)renderDeletionPanel();
+  },err=>console.error('Deletion inbox sync:',err));
+}
+window.requestProtectedDeletion=async function(type,id){
+  const x=deletionTarget(type,id);if(!x||x._archived)return alert('대상 기록을 찾을 수 없습니다.');
+  if(!cloudReady||cloudDirty||cloudWriting||cloudConflict)return alert('먼저 현재 변경사항의 클라우드 저장이 끝날 때까지 기다려 주세요.');
+  if(deletionRequests.some(r=>r.type===type&&r.targetId===id&&(r.status==='pending'||r.status==='approved')))return alert('이미 승인 대기 중인 요청이 있습니다.');
+  if(!confirm(`「${x.name||id}」 ${type==='trip'?'여행 전체':'지출'} 삭제 승인을 상대방에게 요청할까요?\n상대방이 승인하기 전까지 기록은 유지됩니다.`))return;
+  try{
+    await deletionCollection().add({type,targetId:id,targetName:x.name||id,status:'pending',requestedBy:deletionUser(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    alert('삭제 요청을 보냈습니다. 상대방이 승인해야 휴지통으로 이동합니다.');
+  }catch(e){alert('삭제 요청 실패: '+e.message);}
+};
+window.deletionDecision=async function(id,approve){
+  const r=deletionRequests.find(x=>x.id===id);if(!r||r.status!=='pending')return;
+  if(r.requestedBy===deletionUser())return alert('본인이 보낸 요청은 승인 또는 거절할 수 없습니다.');
+  if(!confirm(approve?'이 삭제 요청을 승인할까요?':'이 삭제 요청을 거절할까요?'))return;
+  try{await deletionCollection().doc(id).update({status:approve?'approved':'rejected',decidedBy:deletionUser(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});}
+  catch(e){alert('승인/거절 처리 실패: '+e.message);}
+};
+window.deletionArchive=async function(id){
+  const r=deletionRequests.find(x=>x.id===id);if(!r||r.status!=='approved'||r.requestedBy!==deletionUser()||r.decidedBy===r.requestedBy)return alert('승인된 요청만 요청자가 휴지통으로 옮길 수 있습니다.');
+  if(!cloudReady||cloudDirty||cloudWriting||cloudConflict)return alert('먼저 데이터 동기화 완료를 확인해 주세요.');
+  const x=deletionTarget(r.type,r.targetId);if(!x)return alert('대상 항목이 없습니다.');
+  if(x._archived)return alert('이미 휴지통에 있습니다.');
+  // A request is bound to the target item. We keep it in the database for recovery.
+  if(!confirm('승인된 기록을 휴지통으로 이동할까요? 언제든 복구할 수 있습니다.'))return;
+  x._archived=true;x._deletionRequestId=id;x._archivedAt=new Date().toISOString();
+  save();deletionUiRefresh();
+  // This is deliberately a reversible archive; there is no physical array deletion.
+};
+window.deletionRestore=function(type,id){
+  if(!cloudReady||cloudDirty||cloudConflict)return alert('클라우드 동기화를 완료한 후 복구하세요.');
+  const x=deletionTarget(type,id);if(!x||!x._archived)return;
+  if(!confirm('이 기록을 휴지통에서 복구할까요?'))return;
+  delete x._archived;delete x._archivedAt;delete x._deletionRequestId;
+  save();deletionUiRefresh();renderDeletionPanel();
+};
+window.openDeletionPanel=function(){
+  const el=document.getElementById('deletion-requests-list');
+  if(el){el.style.display='block';renderDeletionPanel();el.scrollIntoView({behavior:'smooth',block:'start'});}
+};
+function renderDeletionPanel(){
+ const el=document.getElementById('deletion-requests-list');if(!el)return;
+ const stateNames={pending:'승인 대기',approved:'승인 완료',rejected:'거절'};
+ const active=deletionRequests.filter(r=>['pending','approved','rejected'].includes(r.status));
+ const archive=[...DB.trips.filter(t=>t._archived).map(t=>({type:'trip',obj:t})),...DB.expenses.filter(e=>e._archived).map(e=>({type:'expense',obj:e}))];
+ el.innerHTML=`<div class="card"><h3 style="font-size:16px;margin-bottom:10px">🔐 삭제 승인 요청</h3>${active.length?active.map(r=>`<div class="approval-item"><b>${deletionSafeText(r.targetName)}</b> · ${r.type==='trip'?'여행':'지출'}<div style="color:var(--muted);font-size:12px">${stateNames[r.status]} · ${r.requestedBy===deletionUser()?'내 요청':'상대방 요청'}</div><div class="flex-row" style="margin-top:7px">${r.status==='pending'&&r.requestedBy!==deletionUser()?`<button class="btn btn-primary btn-sm" onclick="deletionDecision('${r.id}',true)">승인</button><button class="btn btn-subtle btn-sm" onclick="deletionDecision('${r.id}',false)">거절</button>`:''}${r.status==='approved'&&r.requestedBy===deletionUser()?`<button class="btn btn-primary btn-sm" onclick="deletionArchive('${r.id}')">휴지통으로 이동</button>`:''}</div></div>`).join(''):'<p class="upgrade-help">새 요청이 없습니다.</p>'}</div><div class="card"><h3 style="font-size:16px;margin-bottom:10px">🗑️ 휴지통 (${archive.length}건)</h3>${archive.length?archive.map(({type,obj})=>`<div class="approval-item"><b>${deletionSafeText(obj.name)}</b> · ${type==='trip'?'여행':'지출'} <button class="btn btn-ghost btn-sm" onclick="deletionRestore('${type}','${deletionSafeText(obj.id)}')">복구</button></div>`).join(''):'<p class="upgrade-help">휴지통이 비어 있습니다.</p>'}<p class="upgrade-help">영구 삭제하지 않으므로 이전 기록과 사진 데이터는 그대로 보존됩니다.</p></div>`;
+}
+function travelExpenseOverview(){
+ const active=DB.expenses.filter(e=>!e._archived&&!DB.trips.some(t=>t.id===e.tripId&&t._archived));
+ return `<div class="card" style="margin-bottom:14px"><div class="sec-label">여행별 지출 상세 통계</div><div class="expense-trip-grid">${DB.trips.filter(t=>!t._archived).map(t=>{const entries=active.filter(e=>e.tripId===t.id),amount=entries.reduce((n,e)=>n+toK(e.amount,e.currency),0),categories={};for(const e of entries){const k=getCatName(e.cat);categories[k]=(categories[k]||0)+toK(e.amount,e.currency);}const parts=Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,3);const my=entries.filter(e=>e.payer==='me').reduce((n,e)=>n+toK(e.amount,e.currency),0),partner=entries.filter(e=>e.payer==='partner').reduce((n,e)=>n+toK(e.amount,e.currency),0);return `<button class="expense-trip-overview" onclick="setExpTripFilter('${t.id}')"><span style="font-weight:700">${deletionSafeText(t.emoji||'✈️')} ${deletionSafeText(t.name)}</span><span style="color:var(--rose);font-weight:700">₩${amount.toLocaleString()}</span><small>${entries.length}건 · 내 결제 ₩${my.toLocaleString()} · 상대 결제 ₩${partner.toLocaleString()}</small><small>${parts.map(([c,a])=>`${deletionSafeText(c)} ₩${a.toLocaleString()}`).join(' · ')||'지출 없음'}</small></button>`;}).join('')}</div></div>`;
+}
 
 // PHOTOS: feature retired in v3.5. No photo data is deleted from old trips.
 // Existing trip.photos and diary.photos stay intact for backup/recovery.
@@ -3011,7 +3088,7 @@ window.saveTrip=function(){
   else DB.trips.push({id:uid(),...data,pretip:{freewrite:'',checklist:[]},dates:[],stops:{},photos:{}});
   save();closeModal('modal-trip');renderTrips();renderHome();
 };
-window.deleteTrip=function(id){if(!confirm('삭제?'))return;DB.trips=DB.trips.filter(t=>t.id!==id);save();renderTrips();renderHome();};
+window.deleteTrip=function(id){requestProtectedDeletion('trip',id);};
 
 // ════════════════════════════════════════════
 // CATEGORIES
@@ -3084,7 +3161,7 @@ window.exportPDF=function(){
   </style></head><body>
   <h1>Our Travel Book 💕</h1>
   <p style="text-align:center;color:#a08878">${DB.settings.name1} & ${DB.settings.name2}</p>
-  ${DB.trips.map(t=>`<div class="trip"><h2>${t.emoji} ${t.name}</h2><p>${t.country} · ${t.date}</p>
+  ${DB.trips.filter(t=>!t._archived).map(t=>`<div class="trip"><h2>${t.emoji} ${t.name}</h2><p>${t.country} · ${t.date}</p>
     ${DB.diary.filter(d=>d.tripId===t.id).map(d=>`<div class="entry"><strong>${d.dateLabel}</strong> ${d.weather||''}<br/><em>${d.title}</em><p>${d.body}</p><small>${d.mood}</small></div>`).join('')}
   </div>`).join('')}
   
@@ -3206,13 +3283,14 @@ const PLUS_CFG_KEY='tb_plus_config_v1';
 const PLUS_FX_KEY='tb_plus_rates_v1';
 let plusSettings=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_CFG_KEY)||'{}')}catch{return {}}})();
 let plusRates=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_FX_KEY)||'null')}catch{return null}})();
-let plusMap=null,plusCandidates=[],plusSheetRows=[],plusNoteRows=[];
+delete plusSettings.sheetUrl;delete plusSettings.auto;delete plusSettings.targetTrip;
+let plusMap=null,plusCandidates=[],plusNoteRows=[];
 const plusEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plusGetTrip=()=>DB.trips.find(t=>t.id===CTI);
-function plusSaveSettings(){localStorage.setItem(PLUS_CFG_KEY,JSON.stringify(plusSettings));}
+function plusSaveSettings(){delete plusSettings.sheetUrl;delete plusSettings.auto;delete plusSettings.targetTrip;localStorage.setItem(PLUS_CFG_KEY,JSON.stringify(plusSettings));}
 function plusShow(html){document.getElementById('upgrade-content').innerHTML=html;document.getElementById('upgrade-overlay').classList.add('show');}
 window.closeUpgrade=function(){document.getElementById('upgrade-overlay').classList.remove('show');if(plusMap){plusMap.remove();plusMap=null;}};
-window.openUpgradeCenter=function(){plusShow(`<p class="upgrade-help">기존 여행·사진·지출 데이터는 그대로 유지됩니다. 새 데이터는 검토 후 추가하세요.</p><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="openUpgradeMap()">🗺️ 여행 지도</button><button class="btn btn-primary" onclick="openSheetPanel()">📊 시트 연동</button><button class="btn btn-primary" onclick="openSmartMemo()">✨ 메모 정리</button><button class="btn btn-primary" onclick="openFXPanel()">💱 환율</button></div><p class="upgrade-help">현재 여행이 선택돼 있으면 해당 여행의 일정을 사용합니다. 데이터 저장은 기존 Firebase 구조를 따릅니다.</p>`);};
+window.openUpgradeCenter=function(){plusShow(`<p class="upgrade-help">기존 여행·지출 데이터는 그대로 유지됩니다. 새 데이터는 검토 후 추가하세요.</p><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="openUpgradeMap()">🗺️ 여행 지도</button><button class="btn btn-primary" onclick="openSmartMemo()">✨ 메모 정리</button><button class="btn btn-primary" onclick="openFXPanel()">💱 환율</button></div><p class="upgrade-help">현재 여행이 선택돼 있으면 해당 여행의 일정을 사용합니다. 데이터 저장은 기존 Firebase 구조를 따릅니다.</p>`);};
 function plusQuery(stop){let trip=plusGetTrip();return [stop?.name,trip?.country?.replace(/[\u{1F1E6}-\u{1F1FF}]/gu,'')].filter(Boolean).join(' ').trim();}
 function plusStop(id){const trip=plusGetTrip();return trip&&Object.values(trip.stops||{}).flat().find(s=>s.id===id);}
 // V3.3 country-aware map routing. Old data stays untouched until an explicit edit.
@@ -3290,26 +3368,11 @@ window.refreshExchangeRates=refreshExchangeRates;
 function updateFXStatus(){const el=document.getElementById('fx-status');if(el)el.textContent=plusRates?'적용 기준일: '+plusRates.date+' (매매기준 참고용)':'기본 고정 환율 (온라인 갱신 전)';}
 window.openFXPanel=function(){plusShow(`<p class="upgrade-help">매일 갱신되는 참조 환율을 사용하며 실제 카드 청구액과 차이가 날 수 있습니다. 기존 지출 기록의 원금/통화는 수정하지 않습니다.</p><div class="card" id="plus-rates">${Object.keys(R2K).map(c=>`${plusEsc(c)} : 1 ${c} ≈ ${Number(R2K[c]).toFixed(2)} KRW / ${Number(R2A[c]).toFixed(3)} AED`).join('<hr style="border:0;border-top:1px solid var(--subtle);margin:7px">')}</div><div class="upgrade-help">${plusRates?'데이터 기준일 '+plusEsc(plusRates.date):'기본 환율'}</div><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="refreshExchangeRates(true).then(openFXPanel)">실시간 기준 환율 갱신</button><button class="btn btn-ghost" onclick="openUpgradeCenter()">뒤로</button></div>`);};
 if(plusRates&&plusRates.krw&&plusRates.aed){Object.assign(R2K,plusRates.krw);Object.assign(R2A,plusRates.aed);}
-// Generic sheet rows: date | time | place | category | note | amount | currency | type | id | trip
-// Supported sheet endpoint: public Google Sheets published CSV, fetched directly over HTTPS.
-const plusHeads={date:['date','날짜','일자'],time:['time','시간'],place:['place','장소','이름','name'],category:['category','카테고리','분류'],note:['note','메모','비고'],amount:['amount','금액','비용'],currency:['currency','통화'],type:['type','유형','종류'],id:['id','고유id','고유아이디'],trip:['trip','여행','여행명']};
-function plusCSV(txt){const rows=[];let row=[],cell='',quote=false;for(let i=0;i<txt.length;i++){let c=txt[i];if(c==='"'){if(quote&&txt[i+1]==='"'){cell+='"';i++;}else quote=!quote;}else if(c===','&&!quote){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quote){if(c==='\r'&&txt[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell='';}else cell+=c;}row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows;}
-function plusMapRows(csv){const rows=plusCSV(csv.replace(/^\uFEFF/,'')),header=(rows.shift()||[]).map(x=>x.trim().toLowerCase());return rows.map((r,i)=>{const obj={};for(let k of Object.keys(plusHeads)){const at=header.findIndex(h=>plusHeads[k].includes(h));obj[k]=at<0?'':String(r[at]||'').trim();}obj._row=i+2;return obj;}).filter(r=>r.date&&r.place);}
+// Date normalization retained for memo-to-itinerary conversion.
 function plusNormalizeDate(s){s=String(s||'').trim();if(/^\d{4}-\d\d-\d\d$/.test(s))return s;const m=s.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})\.?$/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';}
-window.openSheetPanel=function(){plusShow(`<p class="upgrade-help">Google Sheets에서 <b>파일 → 공유 → 웹에 게시 → CSV</b>를 선택한 뒤 게시된 CSV URL을 붙여넣으세요. 이 방식은 공개된 시트만 읽습니다. 예약번호나 개인 정보가 있는 시트는 공개하지 마세요.</p><div class="upgrade-label">게시된 CSV 주소</div><input class="upgrade-input" id="plus-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" value="${plusEsc(plusSettings.sheetUrl||'')}"><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="fetchPlusSheet()">시트 불러오기 / 동기화</button><button class="btn btn-subtle" onclick="document.getElementById('plus-csv-file').click()">CSV 파일 가져오기</button><input id="plus-csv-file" type="file" accept=".csv,text/csv" style="display:none" onchange="readPlusCSVFile(event)"></div><div class="upgrade-label">자동 확인 (5분 간격, 앱이 열린 동안)</div><label class="upgrade-help"><input type="checkbox" id="plus-auto" ${plusSettings.auto?'checked':''} onchange="setPlusAuto(this.checked)"> 켜기 · 새로운 행만 자동 반영 (현재 선택 여행에 기록)</label><div class="upgrade-help">권장: 먼저 수동 미리보기로 행과 여행 선택을 확인하세요. 자동 반영은 동일 브라우저에 한해서만 실행되며 다른 장치에서 실행되지 않습니다.</div><div id="plus-sheet-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
-window.setPlusAuto=function(v){plusSettings.auto=v;plusSaveSettings();};
-window.readPlusCSVFile=async function(e){const f=e.target.files?.[0];if(!f)return;showPlusRows(plusMapRows(await f.text()));};
-window.fetchPlusSheet=async function(background=false){const url=background?plusSettings.sheetUrl:document.getElementById('plus-sheet-url')?.value.trim();if(!url)return;if(!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(url)||!/output=csv/.test(url))return !background&&alert('Google Sheets에서 웹에 게시한 CSV URL을 입력하세요.');plusSettings.sheetUrl=url;plusSaveSettings();try{const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);const rows=plusMapRows(await res.text());if(background&&plusSettings.auto)applyPlusRows(rows,true);else showPlusRows(rows);}catch(e){if(!background)alert('시트를 불러오지 못했습니다. 게시 설정 / CORS / 네트워크를 확인하세요: '+e.message);}};
-function showPlusRows(rows){plusSheetRows=rows;const out=document.getElementById('plus-sheet-output');if(!out)return;out.innerHTML=`<div class="upgrade-label">가져올 데이터 미리보기 (${rows.length}행)</div><div class="upgrade-preview">${rows.slice(0,30).map(r=>plusEsc(`${r.date} · ${r.time} · ${r.place} · ${r.amount||'-'} ${r.currency}`)).join('\n')}</div><div class="upgrade-label">저장할 여행 선택</div><select class="upgrade-input" id="plus-import-trip">${DB.trips.map(t=>`<option value="${plusEsc(t.id)}" ${t.id===CTI?'selected':''}>${plusEsc(t.name)}</option>`).join('')}</select><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="applyPlusRows()">중복 제외하고 적용</button></div><p class="upgrade-help">기존 장소나 지출은 삭제하지 않습니다. 같은 CSV 행(ID가 있으면 ID 기준)은 다시 추가하지 않습니다.</p>`;}
-function plusSafeToWrite(){if(isFirebaseConfigured()&&!window.firebaseLoaded){alert('Firebase 초기 동기화가 아직 완료되지 않았습니다. 인터넷 연결을 확인하고 다시 시도해주세요.');return false;}return true;}
-window.applyPlusRows=function(rows=plusSheetRows,background=false){if(!plusSafeToWrite())return;const tid=background?(plusSettings.targetTrip||CTI):document.getElementById('plus-import-trip')?.value;const t=DB.trips.find(t=>t.id===tid);if(!t){if(!background)alert('여행을 선택해주세요.');return;}if(!background){plusSettings.targetTrip=tid;plusSaveSettings();}let added=0,expenseCount=0,skip=0;t.dates=t.dates||[];t.stops=t.stops||{};DB.expenses=DB.expenses||[];
-for(const r of rows){const date=plusNormalizeDate(r.date);if(!date){skip++;continue;}if(r.trip&&r.trip!==t.name){skip++;continue;}const kind=(r.type||'').toLowerCase();const isExpense=kind==='expense'||kind==='지출'||(!kind&&r.amount&&!r.time);const key=String(r.id||[date,r.time,r.place,r.amount,r.currency,kind].join('|')).trim();const external='sheet:'+tid+':'+key;
-if(isExpense){if(DB.expenses.some(x=>x.externalKey===external)){skip++;continue;}const amount=Number(String(r.amount).replace(/,/g,''));if(!Number.isFinite(amount)||amount<0){skip++;continue;}DB.expenses.push({id:uid(),externalKey:external,tripId:tid,dateKey:date,dateLabel:date,name:r.place,amount,currency:(r.currency||'KRW').toUpperCase(),payer:'me',shareType:'split',settled:false,method:'card',cat:DB.categories?.[0]?.id||'c1',note:r.note||''});expenseCount++;continue;}
-if(!t.dates.some(d=>d.key===date))t.dates.push({key:date,label:date.slice(5)});t.stops[date]=t.stops[date]||[];if(t.stops[date].some(x=>x.externalKey===external)){skip++;continue;}t.stops[date].push({id:uid(),externalKey:external,name:r.place,time:r.time||'',icon:'📍',cat:r.category||'기타',from:'',transport:'',duration:'',todo:[],buy:[],eat:[],note:r.note||''});added++;}
-if(added||expenseCount){save();renderAfterCloudSync();}if(!background)alert(`가져오기 완료: 장소 ${added}개, 지출 ${expenseCount}개 추가 / ${skip}개 건너뜀.`);};
-setInterval(()=>{if(plusSettings.auto&&plusSettings.sheetUrl&&cloudReady&&window.firebaseLoaded&&plusSettings.targetTrip){fetchPlusSheet(true);}},300000);
+function plusSafeToWrite(){if(!cloudReady||!window.firebaseLoaded){alert('클라우드 연결을 확인해 주세요.');return false;}return true;}
 // Memo converter: rules-based offline draft. This is NOT an LLM; optionally paste JSON prepared by an AI.
-window.openSmartMemo=function(){let t=plusGetTrip();plusShow(`<p class="upgrade-help">메모에서 날짜·시간·장소를 추출하여 일정을 만듭니다. <b>이 기본 기능은 기기 내 규칙 기반 분석</b>이며 AI 서버로 텍스트를 전송하지 않습니다. 더 복잡한 문장은 아래 AI 프롬프트를 복사해 ChatGPT에서 JSON으로 변환한 뒤 붙여넣을 수 있습니다.</p><div class="upgrade-label">여행 선택</div><select class="upgrade-input" id="plus-note-trip">${DB.trips.map(x=>`<option value="${plusEsc(x.id)}" ${x.id===t?.id?'selected':''}>${plusEsc(x.name)}</option>`).join('')}</select><div class="upgrade-label">메모 입력 (예: 2026-11-28 09:00 신주쿠역 | 기차표 구매)</div><textarea class="upgrade-input" id="plus-memo" style="height:140px" placeholder="2026-11-28 09:00 신주쿠역 | 교통패스 구입\n2026-11-28 13:00 시부야 | 점심"></textarea><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="parseSmartMemo()">메모 일정으로 정리</button><button class="btn btn-subtle" onclick="copySmartPrompt()">AI용 프롬프트 복사</button></div><div class="upgrade-label">AI가 생성한 JSON을 붙여넣는 칸 (선택)</div><textarea class="upgrade-input" id="plus-ai-json" style="height:75px" placeholder='[{"date":"2026-11-28","time":"09:00","place":"신주쿠역","note":""}]'></textarea><button class="btn btn-subtle btn-sm" onclick="parseAIJson()">AI JSON 미리보기</button><div id="plus-memo-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
+window.openSmartMemo=function(){let t=plusGetTrip();plusShow(`<p class="upgrade-help">메모에서 날짜·시간·장소를 추출하여 일정을 만듭니다. <b>이 기본 기능은 기기 내 규칙 기반 분석</b>이며 AI 서버로 텍스트를 전송하지 않습니다. 더 복잡한 문장은 아래 AI 프롬프트를 복사해 ChatGPT에서 JSON으로 변환한 뒤 붙여넣을 수 있습니다.</p><div class="upgrade-label">여행 선택</div><select class="upgrade-input" id="plus-note-trip">${DB.trips.filter(x=>!x._archived).map(x=>`<option value="${plusEsc(x.id)}" ${x.id===t?.id?'selected':''}>${plusEsc(x.name)}</option>`).join('')}</select><div class="upgrade-label">메모 입력 (예: 2026-11-28 09:00 신주쿠역 | 기차표 구매)</div><textarea class="upgrade-input" id="plus-memo" style="height:140px" placeholder="2026-11-28 09:00 신주쿠역 | 교통패스 구입\n2026-11-28 13:00 시부야 | 점심"></textarea><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="parseSmartMemo()">메모 일정으로 정리</button><button class="btn btn-subtle" onclick="copySmartPrompt()">AI용 프롬프트 복사</button></div><div class="upgrade-label">AI가 생성한 JSON을 붙여넣는 칸 (선택)</div><textarea class="upgrade-input" id="plus-ai-json" style="height:75px" placeholder='[{"date":"2026-11-28","time":"09:00","place":"신주쿠역","note":""}]'></textarea><button class="btn btn-subtle btn-sm" onclick="parseAIJson()">AI JSON 미리보기</button><div id="plus-memo-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
 window.copySmartPrompt=function(){const p='다음 여행 메모를 JSON 배열로 정리해줘. 각 원소는 date(YYYY-MM-DD), time(HH:MM 또는 빈 문자열), place(장소 이름), note(설명) 필드만 포함해. 없는 날짜/장소를 지어내지 말고 누락된 항목은 제외해. 코드펜스 없이 JSON 배열만 출력해.\n\n'+document.getElementById('plus-memo').value;navigator.clipboard.writeText(p).then(()=>alert('프롬프트 복사 완료')).catch(()=>alert('클립보드 권한이 없어 복사하지 못했습니다.'));};
 window.parseSmartMemo=function(){const value=document.getElementById('plus-memo').value;let date='';plusNoteRows=value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/(?:^|\s)(\d{4}[-./]\d{1,2}[-./]\d{1,2})(?=\s|$)/);if(m){date=plusNormalizeDate(m[1]);l=l.replace(m[0],' ').trim();}const tm=l.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/);let time='';if(tm){time=tm[1].padStart(2,'0')+':'+tm[2];l=l.replace(tm[0],' ').trim();}const [place,...rest]=l.split(/\s*[|｜] *|\s+[-–—]\s+/);return {date,time,place:(place||'').trim().replace(/^[-•*\d.) ]+/,''),note:rest.join(' / ').trim()};}).filter(x=>x.date&&x.place);plusRenderMemo();};
 window.parseAIJson=function(){try{let v=document.getElementById('plus-ai-json').value.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();const a=JSON.parse(v);if(!Array.isArray(a))throw Error('JSON 배열이 필요합니다.');plusNoteRows=a.map(r=>({date:plusNormalizeDate(r.date),time:String(r.time||''),place:String(r.place||'').trim(),note:String(r.note||'')})).filter(r=>r.date&&r.place);plusRenderMemo();}catch(e){alert('JSON 형식 오류: '+e.message);}};
