@@ -499,7 +499,10 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 
 /* Emoji picker */
-.emoji-picker-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.emoji-picker-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.emoji-manual{display:flex;gap:8px;align-items:center}
+.emoji-manual input{flex:1;min-width:0}
+.emoji-picker-help{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}
 .ep-btn{width:36px;height:36px;border:1.5px solid var(--subtle);border-radius:8px;
   font-size:18px;cursor:pointer;background:var(--white);transition:all .15s;
   display:flex;align-items:center;justify-content:center}
@@ -700,6 +703,12 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
     </div>
   </div>
 
+  <div class="card" id="upgrade-settings">
+    <div class="sec-label">✨ 여행 앱 확장 기능</div>
+    <div class="settings-row"><div><div class="settings-label">지도·메모·시트</div><div class="settings-sub">지도 보기, 메모 자동 분류, 외부 데이터 동기화</div></div><button class="btn btn-primary btn-sm" onclick="openUpgradeCenter()">열기</button></div>
+    <div class="settings-row"><div><div class="settings-label">환율 자동 업데이트</div><div class="settings-sub" id="fx-status">기본 환율 사용 중</div></div><button class="btn btn-subtle btn-sm" onclick="refreshExchangeRates(true)">갱신</button></div>
+    <div class="settings-row"><div><div class="settings-label">데이터 백업</div><div class="settings-sub">업데이트 전 JSON 백업을 권장합니다.</div></div><button class="btn btn-subtle btn-sm" onclick="exportBackup()">백업</button></div>
+  </div>
   <div class="card">
     <div class="sec-label">아이폰 앱으로 사용하기</div>
     <div style="font-size:13px;color:var(--muted);line-height:1.7">
@@ -733,7 +742,11 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
     <div class="fg"><label>시작일 (달력 표시)</label><input type="date" id="ti-start"/></div>
     <div class="fg"><label>종료일</label><input type="date" id="ti-end"/></div>
   </div>
-  <div class="fg"><label>이모지</label><div class="emoji-picker-grid" id="ep-trip"></div></div>
+  <div class="fg"><label>대표 이모지 (선택 사항)</label>
+    <div class="emoji-manual"><input type="text" id="trip-emoji-input" placeholder="휴대폰 키보드에서 이모지 입력" aria-label="대표 이모지 직접 입력" oninput="syncEmojiSelection('ep-trip',this.value)"/><button class="btn btn-subtle btn-sm" type="button" onclick="setFreeEmoji('ep-trip','')">없음</button></div>
+    <div class="emoji-picker-grid" id="ep-trip"></div>
+    <div class="emoji-picker-help">추천 이모지를 누르거나 직접 입력하세요. 비워두면 이모지 없이 표시됩니다.</div>
+  </div>
   <div class="fg"><label>상태</label>
     <select id="ti-status">
       <option value="done">✅ 다녀왔어요</option>
@@ -791,8 +804,9 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   <div class="modal-title" id="ms-title">장소 수정 📍</div>
   <div class="fg-row">
     <div class="fg"><label>장소 이름</label><input type="text" id="st-name"/></div>
-    <div class="fg"><label>이모지</label><input type="text" id="st-icon" maxlength="4" style="font-size:20px;text-align:center"/></div>
+    <div class="fg"><label>이모지 (선택 사항)</label><div class="emoji-manual"><input type="text" id="st-icon" placeholder="이모지 직접 입력" oninput="syncEmojiSelection('ep-stop',this.value)"/><button type="button" class="btn btn-subtle btn-sm" onclick="setFreeEmoji('ep-stop','')">없음</button></div></div>
   </div>
+  <div class="fg"><div class="emoji-picker-grid" id="ep-stop"></div><div class="emoji-picker-help">자주 사용하는 이모지를 선택하거나 휴대폰 키보드에서 직접 입력할 수 있습니다.</div></div>
   <div class="fg-row">
     <div class="fg"><label>시간</label><input type="text" id="st-time" placeholder="16:00"/></div>
     <div class="fg"><label>카테고리</label>
@@ -1037,6 +1051,8 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 </div></div>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzxSp7JyWS5mZR1Z4M7vmH+8S0=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -1086,7 +1102,8 @@ let diaryFilter = 'all';
 let diaryPhotosTemp = [];
 let selectedDay = null;
 
-const TRIP_EMOJIS = ['🗾','🌸','🏯','🗼','🇨🇿','🏰','🌴','🗺️','✈️','🌍','🏖️','🎡','🌃','🍜','🥃','🎌','🇰🇷','🇦🇪','🇹🇭','🇫🇷','🇮🇹','🇬🇧'];
+const TRIP_EMOJIS = ['✈️','🌍','🗺️','🏙️','🏖️','🏔️','🌸','🏰','🏯','🛳️','🚗','🎡','📸','☕','🍜','🛍️','💕','🇰🇷','🇨🇳','🇯🇵','🇹🇭','🇦🇪','🇨🇿','🇫🇷','🇮🇹','🇬🇧','🇺🇸','🇦🇺','🇻🇳','🇫🇮'];
+const STOP_EMOJIS = ['📍','🏨','🍽️','🍜','🍣','🥐','☕','🍰','🛍️','📸','🏛️','🏯','🌳','🏖️','🚇','🚕','🚶','✈️','🎟️','🧳','💆','🌅','⭐','🗺️'];
 const CAT_EMOJIS = ['🛍️','🍽️','🏨','🚇','🥃','🎡','💊','☕','🎭','🏊','🛺','🍦','🎁','📸','💆','🛻','⛽','🎫','🌊','🏔️'];
 const WEATHER_OPTIONS = ['☀️ 맑음','🌤️ 약간 흐림','⛅ 흐림','🌧️ 비','⛈️ 뇌우','🌨️ 눈','🌪️ 바람','🌫️ 안개','🌈 무지개'];
 const EVENT_COLORS = {travel:['#e8728a','#f4a7b9'],anniversary:['#9b8bc4','#d4c5e8'],memo:['#7aab70','#b8d4b0'],uae:['#6ba3d6','#b0d0ec']};
@@ -1727,6 +1744,9 @@ function renderRoute(trip){
       <button class="btn btn-primary btn-sm" onclick="openModal('modal-route-bulk')">📝 장소 한번에 입력</button>
       <button class="btn btn-subtle btn-sm" onclick="openStopModal()">＋ 장소 추가</button>
       <button class="btn btn-ghost btn-sm" onclick="shareRoute()">📤 공유</button>
+      <button class="btn btn-subtle btn-sm" onclick="openUpgradeMap()">📍 지도 보기</button>
+      <button class="btn btn-ghost btn-sm" onclick="openGoogleDay()">🧭 자동 지도 경로</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSmartMemo()">✨ 메모→일정</button>
     </div>`;
     const stops=trip.stops[curDK]||[];
     if(!stops.length){html+=`<div class="empty"><div class="empty-icon">🗺️</div><p>장소를 추가해봐요!<br/>한번에 입력 버튼을 눌러보세요</p></div>`;}
@@ -1761,8 +1781,9 @@ function renderRoute(trip){
               ontouchstart="touchDragStart(event,'${s.id}')"
               ontouchmove="touchDragMove(event)"
               ontouchend="touchDragEnd(event,'${s.id}')">⠿</span>
-            <span class="route-icon">${s.icon||'📍'}</span>
+            <span class="route-icon">${s.icon??'📍'}</span>
             <span class="route-name">${s.name}</span>
+            <button class="btn btn-subtle btn-sm" onclick="event.stopPropagation();openStopMap('auto','${s.id}')">🗺️ ${plusProviderNames[plusStopProvider(s)]}</button>
             ${s.time?`<span style="font-size:10px;color:var(--muted)">${s.time}</span>`:''}
             ${s.rating?`<span style="font-size:11px">⭐${'★'.repeat(s.rating)}</span>`:''}
             <span class="badge ${cc[s.cat]||'badge-sky'}" style="font-size:10px">${s.cat}</span>
@@ -1853,7 +1874,7 @@ window.shareRoute=function(){
   if(dateInfo?.summary)text+=`\n💬 ${dateInfo.summary}`;
   text+='\n\n';
   stops.forEach((s,i)=>{
-    text+=`${i+1}. ${s.icon||'📍'} ${s.name}`;
+    text+=`${i+1}. ${s.icon??'📍'}${s.icon?' ':''}${s.name}`;
     if(s.time)text+=` (${s.time})`;
     if(s.rating)text+=` ${'⭐'.repeat(s.rating)}`;
     text+='\n';
@@ -2140,13 +2161,13 @@ window.saveBulkRoute=function(){
   save();closeModal('modal-route-bulk');renderRoute(trip);
 };
 
-window.openStopModal=function(){editId=null;document.getElementById('ms-title').textContent='장소 추가 📍';['st-name','st-time','st-from','st-transport','st-duration','st-note'].forEach(i=>document.getElementById(i).value='');document.getElementById('st-icon').value='📍';['st-todo','st-buy','st-eat'].forEach(i=>document.getElementById(i).value='');openModal('modal-stop');};
+window.openStopModal=function(){editId=null;document.getElementById('ms-title').textContent='장소 추가 📍';['st-name','st-time','st-from','st-transport','st-duration','st-note'].forEach(i=>document.getElementById(i).value='');renderFreeEP('ep-stop','📍');['st-todo','st-buy','st-eat'].forEach(i=>document.getElementById(i).value='');openModal('modal-stop');};
 window.editStop=function(id){
   const trip=DB.trips.find(t=>t.id===CTI);let s=null;
   Object.values(trip.stops||{}).forEach(arr=>{const f=arr.find(x=>x.id===id);if(f)s=f;});
   if(!s)return;editId=id;
   document.getElementById('ms-title').textContent='장소 수정 ✏️';
-  document.getElementById('st-name').value=s.name;document.getElementById('st-icon').value=s.icon||'📍';
+  document.getElementById('st-name').value=s.name;renderFreeEP('ep-stop',s.icon??'📍');
   document.getElementById('st-time').value=s.time||'';document.getElementById('st-cat').value=s.cat;
   document.getElementById('st-from').value=s.from||'';
   document.getElementById('st-transport').value=s.transport||'';document.getElementById('st-duration').value=s.duration||'';
@@ -2165,7 +2186,7 @@ window.saveStop=function(){
     return newTexts.map(text=>{const old=norm.find(o=>o.text===text);return old||{text,done:false};});
   };
   const newTodo=L('st-todo'),newBuy=L('st-buy'),newEat=L('st-eat');
-  const data={name:document.getElementById('st-name').value.trim()||'장소',icon:document.getElementById('st-icon').value.trim()||'📍',
+  const data={name:document.getElementById('st-name').value.trim()||'장소',icon:document.getElementById('st-icon').value.trim(),
     time:document.getElementById('st-time').value.trim(),cat:document.getElementById('st-cat').value,
     from:document.getElementById('st-from').value.trim(),transport:document.getElementById('st-transport').value.trim(),
     duration:document.getElementById('st-duration').value.trim(),
@@ -2430,7 +2451,7 @@ window.generateBlogHTML = function(){
       } else {
         stops.forEach((s, si)=>{
           html += `<div style="display:flex;gap:12px;margin-bottom:14px;padding:12px 14px;background:#fff8f2;border-radius:10px;border-left:4px solid #f4a7b9">\n`;
-          html += `  <div style="font-size:22px;flex-shrink:0">${s.icon||'📍'}</div>\n`;
+          html += `  <div style="font-size:22px;flex-shrink:0">${s.icon??'📍'}</div>\n`;
           html += `  <div style="flex:1">\n`;
           html += `    <div style="font-weight:700;font-size:14px;color:#2d1810">${escHtml(s.name)}${s.time?` <span style="font-size:12px;color:#9a7a6a;font-weight:400">${escHtml(s.time)}</span>`:''}</div>\n`;
           if(s.from || s.transport){
@@ -2944,13 +2965,13 @@ window.closeFullscreen=function(){document.getElementById('photo-fullscreen').cl
 // ════════════════════════════════════════════
 // TRIP MODAL
 // ════════════════════════════════════════════
-window.openTripModal=function(){editId=null;document.getElementById('mt-title').textContent='새 여행 추가 ✈️';['ti-name','ti-country','ti-date','ti-tags','ti-start','ti-end'].forEach(i=>document.getElementById(i).value='');document.getElementById('ti-status').value='plan';renderEP('ep-trip','🗾');openModal('modal-trip');};
-window.editTrip=function(id){editId=id;const t=DB.trips.find(x=>x.id===id);if(!t)return;document.getElementById('mt-title').textContent='여행 수정 ✏️';document.getElementById('ti-name').value=t.name;document.getElementById('ti-country').value=t.country;document.getElementById('ti-date').value=t.date;document.getElementById('ti-status').value=t.status;document.getElementById('ti-tags').value=t.tags.join(', ');document.getElementById('ti-color').value=t.color;document.getElementById('ti-start').value=t.startDate||'';document.getElementById('ti-end').value=t.endDate||'';renderEP('ep-trip',t.emoji);openModal('modal-trip');};
+window.openTripModal=function(){editId=null;document.getElementById('mt-title').textContent='새 여행 추가 ✈️';['ti-name','ti-country','ti-date','ti-tags','ti-start','ti-end'].forEach(i=>document.getElementById(i).value='');document.getElementById('ti-status').value='plan';renderFreeEP('ep-trip','✈️');openModal('modal-trip');};
+window.editTrip=function(id){editId=id;const t=DB.trips.find(x=>x.id===id);if(!t)return;document.getElementById('mt-title').textContent='여행 수정 ✏️';document.getElementById('ti-name').value=t.name;document.getElementById('ti-country').value=t.country;document.getElementById('ti-date').value=t.date;document.getElementById('ti-status').value=t.status;document.getElementById('ti-tags').value=t.tags.join(', ');document.getElementById('ti-color').value=t.color;document.getElementById('ti-start').value=t.startDate||'';document.getElementById('ti-end').value=t.endDate||'';renderFreeEP('ep-trip',t.emoji??'✈️');openModal('modal-trip');};
 window.saveTrip=function(){
   const name=document.getElementById('ti-name').value.trim();if(!name){alert('여행 이름!');return;}
   const data={name,country:document.getElementById('ti-country').value.trim()||'미정',date:document.getElementById('ti-date').value.trim()||'날짜 미정',
     startDate:document.getElementById('ti-start').value,endDate:document.getElementById('ti-end').value,
-    emoji:document.querySelector('.ep-btn.sel')?.textContent||'✈️',color:document.getElementById('ti-color').value,
+    emoji:document.getElementById('trip-emoji-input').value.trim(),color:document.getElementById('ti-color').value,
     status:document.getElementById('ti-status').value,tags:document.getElementById('ti-tags').value.split(',').map(t=>t.trim()).filter(Boolean)};
   if(editId){const t=DB.trips.find(x=>x.id===editId);Object.assign(t,data);}
   else DB.trips.push({id:uid(),...data,pretip:{freewrite:'',checklist:[]},dates:[],stops:{},photos:{}});
@@ -3021,7 +3042,18 @@ window.exportPDF=function(){
   ${DB.trips.map(t=>`<div class="trip"><h2>${t.emoji} ${t.name}</h2><p>${t.country} · ${t.date}</p>
     ${DB.diary.filter(d=>d.tripId===t.id).map(d=>`<div class="entry"><strong>${d.dateLabel}</strong> ${d.weather||''}<br/><em>${d.title}</em><p>${d.body}</p><small>${d.mood}</small></div>`).join('')}
   </div>`).join('')}
-  </body></html>`);
+  
+<style>
+ .upgrade-overlay{position:fixed;inset:0;z-index:1100;background:rgba(30,10,5,.55);display:none;align-items:center;justify-content:center;padding:12px}
+ .upgrade-overlay.show{display:flex}.upgrade-panel{background:var(--cream);border-radius:20px;padding:18px;width:100%;max-width:650px;max-height:94vh;overflow:auto;color:var(--ink)}
+ .upgrade-label{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}.upgrade-input{width:100%;padding:10px;border:1.5px solid var(--subtle);border-radius:10px;background:var(--white);color:var(--ink);font:inherit}
+ .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
+</style>
+<div class="upgrade-overlay" id="upgrade-overlay"><div class="upgrade-panel">
+ <div class="flex-between"><div class="page-title" style="font-size:23px">Travel Book · Plus</div><button class="btn btn-ghost btn-sm" onclick="closeUpgrade()">✕ 닫기</button></div>
+ <div id="upgrade-content"></div>
+</div></div>
+</body></html>`);
   w.document.close();setTimeout(()=>w.print(),500);
 };
 
@@ -3033,18 +3065,46 @@ function renderEP(cid,sel,emojis){
   document.getElementById(cid).innerHTML=list.map(e=>`<button class="ep-btn ${e===sel?'sel':''}" onclick="selEP(this,'${cid}')" type="button">${e}</button>`).join('');
 }
 window.selEP=function(btn,cid){document.querySelectorAll('#'+cid+' .ep-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');};
+// Free-form emoji inputs preserve empty values and existing Firestore data.
+function emojiInputId(cid){return cid==='ep-trip'?'trip-emoji-input':cid==='ep-stop'?'st-icon':null;}
+window.syncEmojiSelection=function(cid,value){
+  document.querySelectorAll('#'+cid+' .ep-btn').forEach(btn=>btn.classList.toggle('sel',btn.textContent===value));
+};
+window.setFreeEmoji=function(cid,value){
+  const input=document.getElementById(emojiInputId(cid));if(!input)return;
+  input.value=value;syncEmojiSelection(cid,value);
+};
+window.chooseFreeEmoji=function(cid,value){setFreeEmoji(cid,value);};
+function renderFreeEP(cid,value){
+  const list=cid==='ep-stop'?STOP_EMOJIS:TRIP_EMOJIS;
+  const root=document.getElementById(cid);if(!root)return;
+  root.replaceChildren();
+  list.forEach(emoji=>{
+    const btn=document.createElement('button');btn.type='button';btn.className='ep-btn';
+    btn.textContent=emoji;btn.setAttribute('aria-label',emoji+' 선택');
+    btn.addEventListener('click',()=>chooseFreeEmoji(cid,emoji));root.appendChild(btn);
+  });
+  setFreeEmoji(cid,value??'');
+}
 
 // ════════════════════════════════════════════
 // MODAL UTILS
 // ════════════════════════════════════════════
 function openModal(id){document.getElementById(id).classList.add('open');}
 window.closeModal=function(id){if(id==='modal-date')editDateTabKey=null;if(id==='modal-event')editId=null;document.getElementById(id).classList.remove('open');};
-document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
-// Swipe down to close
-document.querySelectorAll('.modal').forEach(m=>{
-  let sy=0;
-  m.addEventListener('touchstart',e=>{sy=e.touches[0].clientY;});
-  m.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-sy>80)m.closest('.modal-overlay').classList.remove('open');});
+// Input safety: background taps and vertical swipes must never dismiss a form.
+// Modal contents remain intact until the user explicitly saves or closes the form.
+// Do not reintroduce backdrop click or swipe-to-dismiss handlers here.
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',event=>{
+    if(event.target===overlay){ event.preventDefault(); event.stopPropagation(); }
+  });
+});
+// Avoid accidental Escape dismissals while typing on desktop.
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && document.querySelector('.modal-overlay.open')){
+    event.preventDefault();
+  }
 });
 
 // ════════════════════════════════════════════
@@ -3055,7 +3115,7 @@ document.documentElement.setAttribute('data-theme',DB.settings.darkMode?'dark':'
 renderHome();
 renderTrips();
 renderCatSelect();
-renderEP('ep-trip','🗾');
+renderFreeEP('ep-trip','✈️');
 renderEP('ep-cat','📝',CAT_EMOJIS);
 initCloudSync();
 // Install banner for iOS
@@ -3068,9 +3128,138 @@ if(isIOS&&!isStandalone&&!localStorage.getItem('banner_ok')){
   b.onclick=()=>{b.remove();localStorage.setItem('banner_ok','1');};
   document.body.appendChild(b);
 }
-</script>
-</body>
-</html>   
-   
 
-   
+// ════════════════════════════════════════════
+// TRAVEL BOOK PLUS: additive extension, preserves DB and Firebase room.
+// Sheet configuration is device-local, never written into public Firebase.
+// ════════════════════════════════════════════
+const PLUS_CFG_KEY='tb_plus_config_v1';
+const PLUS_FX_KEY='tb_plus_rates_v1';
+let plusSettings=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_CFG_KEY)||'{}')}catch{return {}}})();
+let plusRates=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_FX_KEY)||'null')}catch{return null}})();
+let plusMap=null,plusCandidates=[],plusSheetRows=[],plusNoteRows=[];
+const plusEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const plusGetTrip=()=>DB.trips.find(t=>t.id===CTI);
+function plusSaveSettings(){localStorage.setItem(PLUS_CFG_KEY,JSON.stringify(plusSettings));}
+function plusShow(html){document.getElementById('upgrade-content').innerHTML=html;document.getElementById('upgrade-overlay').classList.add('show');}
+window.closeUpgrade=function(){document.getElementById('upgrade-overlay').classList.remove('show');if(plusMap){plusMap.remove();plusMap=null;}};
+window.openUpgradeCenter=function(){plusShow(`<p class="upgrade-help">기존 여행·사진·지출 데이터는 그대로 유지됩니다. 새 데이터는 검토 후 추가하세요.</p><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="openUpgradeMap()">🗺️ 여행 지도</button><button class="btn btn-primary" onclick="openSheetPanel()">📊 시트 연동</button><button class="btn btn-primary" onclick="openSmartMemo()">✨ 메모 정리</button><button class="btn btn-primary" onclick="openFXPanel()">💱 환율</button></div><p class="upgrade-help">현재 여행이 선택돼 있으면 해당 여행의 일정을 사용합니다. 데이터 저장은 기존 Firebase 구조를 따릅니다.</p>`);};
+function plusQuery(stop){let trip=plusGetTrip();return [stop?.name,trip?.country?.replace(/[\u{1F1E6}-\u{1F1FF}]/gu,'')].filter(Boolean).join(' ').trim();}
+function plusStop(id){const trip=plusGetTrip();return trip&&Object.values(trip.stops||{}).flat().find(s=>s.id===id);}
+// V3.3 country-aware map routing. Old data stays untouched until an explicit edit.
+const plusProviderNames={google:'구글 지도',naver:'네이버 지도',amap:'고덕지도 (高德地图)'};
+const plusCountryOptions=[['','자동'],['KR','🇰🇷 한국'],['JP','🇯🇵 일본'],['CN','🇨🇳 중국 본토'],['TH','🇹🇭 태국'],['AE','🇦🇪 UAE'],['HK','🇭🇰 홍콩'],['MO','🇲🇴 마카오'],['TW','🇹🇼 대만'],['OTHER','🌍 기타 국가']];
+function plusCountryFromText(input){
+ const v=String(input||'').toLowerCase();
+ const rules=[['JP',/🇯🇵|(?:^|[^a-z])jp(?:[^a-z]|$)|일본|日本|japan|오사카|교토|도쿄|후쿠오카|나라시|나고야|아마노하시다테|이네|삿포로|오키나와|osaka|kyoto|tokyo|fukuoka|amanohashidate|ine\b|japanese/],['CN',/🇨🇳|(?:^|[^a-z])cn(?:[^a-z]|$)|중국|中国|china|충칭|중경|베이징|상하이|청두|광저우|시안|重庆|北京|上海|成都|广州|西安|chongqing|beijing|shanghai|chengdu|guangzhou/],['KR',/🇰🇷|(?:^|[^a-z])kr(?:[^a-z]|$)|대한민국|한국|south korea|republic of korea|korea|서울|부산|제주|인천|seoul|busan|jeju|incheon/],['TH',/🇹🇭|태국|thailand|방콕|치앙마이|bangkok|chiang mai/],['AE',/🇦🇪|아랍에미리트|uae|abu dhabi|dubai|두바이|아부다비/],['HK',/🇭🇰|홍콩|hong kong/],['MO',/🇲🇴|마카오|macau|macao/],['TW',/🇹🇼|대만|taiwan|타이베이|taipei/]];
+ for(const [code,re] of rules)if(re.test(v))return code;
+ return '';
+}
+function plusCountryForTrip(t){
+ const country=plusCountryFromText(t?.country);
+ // The country field is authoritative even when the trip title mentions another country.
+ if(country)return country;
+ return plusCountryFromText(t?.name)||'';
+}
+function plusDateCountry(t,date){return t?.dateCountries?.[date]||plusCountryForTrip(t);}
+function plusCountryForStop(s,t=plusGetTrip(),date){
+ if(s?.countryCode)return s.countryCode;
+ // A recognizable place name takes precedence over a mixed-country trip title.
+ const location=plusCountryFromText(s?.name);
+ if(location)return location;
+ const day=date||Object.keys(t?.stops||{}).find(k=>(t.stops[k]||[]).some(x=>x.id===s?.id));
+ return plusDateCountry(t,day)||'';
+}
+function plusAutoProvider(t){return plusCountryForTrip(t)==='KR'?'naver':plusCountryForTrip(t)==='CN'?'amap':'google';}
+function plusProvider(t=plusGetTrip()){return plusSettings.providers?.[t?.id]||plusAutoProvider(t);}
+function plusStopProvider(s,date){
+ if(s?.mapProvider&&s.mapProvider!=='auto')return s.mapProvider;
+ const code=plusCountryForStop(s,plusGetTrip(),date);
+ if(code==='KR')return 'naver';if(code==='CN')return 'amap';
+ // Explicit location/day country wins over travel-wide manual map override.
+ if(code)return 'google';
+ return plusProvider();
+}
+function plusQuery(s){const t=plusGetTrip(),c=plusCountryForStop(s,t);const hint={KR:'대한민국',JP:'日本',CN:'中国',TH:'Thailand',AE:'UAE',HK:'Hong Kong',MO:'Macau',TW:'Taiwan'}[c]||t?.country||'';return [s?.name,hint].filter(Boolean).join(' ').trim();}
+function plusUrlForStop(s,provider=plusStopProvider(s)){
+ const saved=s?.mapLinks?.[provider];if(saved&&/^https:\/\//i.test(saved))return saved;
+ const q=plusQuery(s),encoded=encodeURIComponent(q);
+ if(provider==='naver')return 'https://map.naver.com/p/search/'+encoded;
+ if(provider==='amap')return 'https://uri.amap.com/search?keyword='+encoded+'&view=map&callnative=1';
+ if(Number.isFinite(Number(s?.lat))&&Number.isFinite(Number(s?.lng))&&s?.lat!==undefined&&s?.lng!==undefined)return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.lat+','+s.lng);
+ return 'https://www.google.com/maps/search/?api=1&query='+encoded;
+}
+window.openStopMap=function(which,id){const st=plusStop(id);if(!st)return;window.open(plusUrlForStop(st,which==='auto'?plusStopProvider(st):which),'_blank','noopener,noreferrer');};
+window.setTripMapProvider=function(provider){const t=plusGetTrip();if(!t||!['auto','google','naver','amap'].includes(provider))return;plusSettings.providers=plusSettings.providers||{};if(provider==='auto')delete plusSettings.providers[t.id];else plusSettings.providers[t.id]=provider;plusSaveSettings();openUpgradeMap();renderTripDetail(t);};
+function plusCountrySelect(value,fn){return `<select class="upgrade-input" style="max-width:155px;padding:5px;font-size:12px" onchange="${fn.includes('this.value')?fn:fn+'(this.value)'}">${plusCountryOptions.map(([v,l])=>`<option value="${v}" ${value===v?'selected':''}>${l}</option>`).join('')}</select>`;}
+window.setPlusDayCountry=function(code){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value;if(!t||!date||!plusSafeToWrite())return;t.dateCountries=t.dateCountries||{};if(code) t.dateCountries[date]=code;else delete t.dateCountries[date];save();drawUpgradeMap();renderTripDetail(t);};
+window.setPlusStopCountry=function(id,code){const s=plusStop(id);if(!s||!plusSafeToWrite())return;if(code)s.countryCode=code;else delete s.countryCode;save();drawUpgradeMap();renderTripDetail(plusGetTrip());};
+window.setPlusStopProvider=function(id,provider){const s=plusStop(id);if(!s||!plusSafeToWrite())return;if(provider!=='auto'&&!plusProviderNames[provider])return;if(provider==='auto')delete s.mapProvider;else s.mapProvider=provider;save();drawUpgradeMap();renderTripDetail(plusGetTrip());};
+window.editPlusMapLink=function(id){const st=plusStop(id);if(!st)return;const provider=plusStopProvider(st),old=st.mapLinks?.[provider]||'';const value=prompt(plusProviderNames[provider]+'에서 장소 공유 → 링크 복사 후 붙여넣으세요.\n빈칸으로 저장하면 기존 링크를 해제합니다.',old);if(value===null)return;const url=value.trim();if(url){let parsed;try{parsed=new URL(url);}catch{return alert('유효한 HTTPS 주소를 붙여넣어 주세요.');}const domain=parsed.hostname.toLowerCase();const allowed={google:['google.com','maps.google.com','goo.gl','maps.app.goo.gl'],naver:['naver.com','map.naver.com','m.place.naver.com','place.naver.com','naver.me'],amap:['amap.com','uri.amap.com','gaode.com']}[provider];if(parsed.protocol!=='https:'||!allowed.some(d=>domain===d||domain.endsWith('.'+d)))return alert('선택한 지도 서비스의 HTTPS 공유 링크만 저장할 수 있습니다.');}
+ if(!plusSafeToWrite())return;st.mapLinks=st.mapLinks||{};if(url)st.mapLinks[provider]=url;else delete st.mapLinks[provider];save();drawUpgradeMap();renderTripDetail(plusGetTrip());alert(url?'지도 공유 링크를 저장했습니다.':'기존 공유 링크를 해제했습니다.');};
+window.openDayRoute=function(){const t=plusGetTrip();if(!t)return;const date=document.getElementById('plus-map-date')?.value||curDK;const items=t.stops?.[date]||[];if(!items.length)return alert('장소가 없습니다.');const groups=[];for(const st of items){const provider=plusStopProvider(st,date);let last=groups[groups.length-1];if(!last||last.provider!==provider)groups.push(last={provider,stops:[]});last.stops.push(st);}
+ if(groups.length>1){alert('이 날짜에는 국가/지도 서비스가 다른 장소가 포함되어 있습니다. 첫 장소를 열고, 각 장소의 지도 버튼으로 이동해 주세요.');window.open(plusUrlForStop(items[0]),'_blank','noopener,noreferrer');return;}
+ const provider=groups[0].provider;if(provider!=='google'){alert(plusProviderNames[provider]+'는 여러 경유지 동시 연결이 제한되어 첫 장소를 엽니다.');window.open(plusUrlForStop(items[0],provider),'_blank','noopener,noreferrer');return;}
+ const a=items.map(x=>x.lat!==undefined&&x.lng!==undefined?x.lat+','+x.lng:plusQuery(x));if(a.length===1)return window.open(plusUrlForStop(items[0],'google'),'_blank','noopener,noreferrer');const chosen=a.slice(0,5);const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(chosen[0])+'&destination='+encodeURIComponent(chosen[chosen.length-1])+(chosen.length>2?'&waypoints='+encodeURIComponent(chosen.slice(1,-1).join('|')):'');window.open(url,'_blank','noopener,noreferrer');if(a.length>5)alert('첫 5개 장소만 경로에 포함했습니다.');};
+window.openGoogleDay=window.openDayRoute;
+window.openUpgradeMap=function(){const t=plusGetTrip();if(!t)return plusShow('<p>여행 탭에서 여행을 먼저 선택한 다음 지도 보기를 열어주세요.</p><button class="btn btn-subtle" onclick="openUpgradeCenter()">뒤로</button>');const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');const selected=plusSettings.providers?.[t.id]||'auto';const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 국가를 모르는 장소는 날짜의 국가를 선택하세요. 장소별 지도 앱 변경도 가능합니다.</p><div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div><select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select><div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select><div id="plus-day-country"></div><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-stops"></div><div class="upgrade-buttonrow"><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);setTimeout(drawUpgradeMap,80);};
+window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value,el=document.getElementById('plus-map');if(!t||!el)return;const arr=t.stops?.[date]||[];
+ const dayCode=t.dateCountries?.[date]||'';document.getElementById('plus-day-country').innerHTML=`<div class="upgrade-label">이 날짜의 국가 ${!dayCode?'(자동: '+plusEsc(plusDateCountry(t,date)||'미지정')+')':''}</div>${plusCountrySelect(dayCode,'setPlusDayCountry')}`;
+ document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:6px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div><div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
+ if(plusMap){plusMap.remove();plusMap=null;}const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
+ plusMap=L.map(el).setView([36,128],4);
+ // Alternative tile host instead of the blocked volunteer-run OSM tile endpoint.
+ const tiles=L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors © CARTO'}).addTo(plusMap);
+ let tileErrors=0;tiles.on('tileerror',()=>{if(++tileErrors===3){status.textContent='지도 배경을 불러오지 못했습니다. 아래 장소별 지도 버튼은 계속 사용할 수 있습니다.';}});
+ const pts=[];arr.forEach((s,i)=>{if(s.lat===undefined||s.lng===undefined)return;const lat=Number(s.lat),lng=Number(s.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;pts.push([lat,lng]);L.marker([lat,lng]).addTo(plusMap).bindPopup(plusEsc((i+1)+'. '+s.name));});if(pts.length){if(pts.length>1)L.polyline(pts,{color:'#e8728a',weight:3,dashArray:'6,6'}).addTo(plusMap);plusMap.fitBounds(pts,{padding:[30,30],maxZoom:14});}else status.textContent='아직 핀 좌표가 없습니다. 장소별 핀 찾기를 눌러 위치를 저장하세요.';setTimeout(()=>plusMap&&plusMap.invalidateSize(),200);};
+window.geocodePlusStop=async function(id){const s=plusStop(id);if(!s)return;const out=document.getElementById('plus-map-stops');if(!out)return;const q=plusQuery(s);out.insertAdjacentHTML('afterbegin','<p class="upgrade-help" id="plus-loading">장소를 검색하고 있습니다…</p>');try{const r=await fetch('https://photon.komoot.io/api/?q='+encodeURIComponent(q)+'&limit=5');if(!r.ok)throw Error('검색 서버 오류');const js=await r.json();const features=js.features||[];document.getElementById('plus-loading')?.remove();if(!features.length)return alert('검색 결과가 없습니다. 정확한 영문 지명으로 다시 시도해주세요.');const items=features.map(f=>({lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name:[f.properties.name,f.properties.city,f.properties.country].filter(Boolean).join(', ')}));plusCandidates=items;out.insertAdjacentHTML('afterbegin',`<div class="card"><b>${plusEsc(s.name)} 위치 선택</b>${items.map((it,i)=>`<div class="settings-row"><span style="font-size:12px">${plusEsc(it.name)}</span><button class="btn btn-primary btn-sm" onclick="assignPlusLocation('${plusEsc(id)}',${i})">이 위치 저장</button></div>`).join('')}</div>`);}catch(e){document.getElementById('plus-loading')?.remove();alert('장소 검색 실패: '+e.message);}};
+window.assignPlusLocation=function(id,index){if(!plusSafeToWrite())return;const s=plusStop(id),c=plusCandidates[index];if(!s||!c)return;s.lat=c.lat;s.lng=c.lng;save();drawUpgradeMap();};
+// Exchange rates are cached locally; existing expense records are not altered.
+// USD base rates -> KRW and AED, with initial legacy values if the API is unavailable.
+async function refreshExchangeRates(notify=false){try{const r=await fetch('https://api.frankfurter.dev/v1/latest?base=USD');if(!r.ok)throw Error('HTTP '+r.status);let j=await r.json(),rate=j.rates;if(!rate?.KRW||!rate?.AED)throw Error('지원 통화 부족');const krw=rate.KRW,aed=rate.AED;for(const c of Object.keys(R2K)){if(c==='KRW'){R2K[c]=1;R2A[c]=aed/krw;}else if(c==='USD'){R2K[c]=krw;R2A[c]=aed;}else if(rate[c]){R2K[c]=krw/rate[c];R2A[c]=aed/rate[c];}}plusRates={date:j.date,ts:Date.now(),krw:{...R2K},aed:{...R2A}};localStorage.setItem(PLUS_FX_KEY,JSON.stringify(plusRates));updateFXStatus();renderAfterCloudSync();if(notify)alert('기준일 '+j.date+' 환율 업데이트 완료. 기존 지출 금액은 유지됩니다.');}catch(e){if(notify)alert('환율 업데이트 실패: '+e.message+'\n기존/캐시 환율로 계속 표시합니다.');updateFXStatus();}}
+window.refreshExchangeRates=refreshExchangeRates;
+function updateFXStatus(){const el=document.getElementById('fx-status');if(el)el.textContent=plusRates?'적용 기준일: '+plusRates.date+' (매매기준 참고용)':'기본 고정 환율 (온라인 갱신 전)';}
+window.openFXPanel=function(){plusShow(`<p class="upgrade-help">매일 갱신되는 참조 환율을 사용하며 실제 카드 청구액과 차이가 날 수 있습니다. 기존 지출 기록의 원금/통화는 수정하지 않습니다.</p><div class="card" id="plus-rates">${Object.keys(R2K).map(c=>`${plusEsc(c)} : 1 ${c} ≈ ${Number(R2K[c]).toFixed(2)} KRW / ${Number(R2A[c]).toFixed(3)} AED`).join('<hr style="border:0;border-top:1px solid var(--subtle);margin:7px">')}</div><div class="upgrade-help">${plusRates?'데이터 기준일 '+plusEsc(plusRates.date):'기본 환율'}</div><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="refreshExchangeRates(true).then(openFXPanel)">실시간 기준 환율 갱신</button><button class="btn btn-ghost" onclick="openUpgradeCenter()">뒤로</button></div>`);};
+if(plusRates&&plusRates.krw&&plusRates.aed){Object.assign(R2K,plusRates.krw);Object.assign(R2A,plusRates.aed);}
+// Generic sheet rows: date | time | place | category | note | amount | currency | type | id | trip
+// Supported sheet endpoint: public Google Sheets published CSV, fetched directly over HTTPS.
+const plusHeads={date:['date','날짜','일자'],time:['time','시간'],place:['place','장소','이름','name'],category:['category','카테고리','분류'],note:['note','메모','비고'],amount:['amount','금액','비용'],currency:['currency','통화'],type:['type','유형','종류'],id:['id','고유id','고유아이디'],trip:['trip','여행','여행명']};
+function plusCSV(txt){const rows=[];let row=[],cell='',quote=false;for(let i=0;i<txt.length;i++){let c=txt[i];if(c==='"'){if(quote&&txt[i+1]==='"'){cell+='"';i++;}else quote=!quote;}else if(c===','&&!quote){row.push(cell);cell='';}else if((c==='\n'||c==='\r')&&!quote){if(c==='\r'&&txt[i+1]==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell='';}else cell+=c;}row.push(cell);if(row.some(v=>v.trim()))rows.push(row);return rows;}
+function plusMapRows(csv){const rows=plusCSV(csv.replace(/^\uFEFF/,'')),header=(rows.shift()||[]).map(x=>x.trim().toLowerCase());return rows.map((r,i)=>{const obj={};for(let k of Object.keys(plusHeads)){const at=header.findIndex(h=>plusHeads[k].includes(h));obj[k]=at<0?'':String(r[at]||'').trim();}obj._row=i+2;return obj;}).filter(r=>r.date&&r.place);}
+function plusNormalizeDate(s){s=String(s||'').trim();if(/^\d{4}-\d\d-\d\d$/.test(s))return s;const m=s.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})\.?$/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';}
+window.openSheetPanel=function(){plusShow(`<p class="upgrade-help">Google Sheets에서 <b>파일 → 공유 → 웹에 게시 → CSV</b>를 선택한 뒤 게시된 CSV URL을 붙여넣으세요. 이 방식은 공개된 시트만 읽습니다. 예약번호나 개인 정보가 있는 시트는 공개하지 마세요.</p><div class="upgrade-label">게시된 CSV 주소</div><input class="upgrade-input" id="plus-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv" value="${plusEsc(plusSettings.sheetUrl||'')}"><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="fetchPlusSheet()">시트 불러오기 / 동기화</button><button class="btn btn-subtle" onclick="document.getElementById('plus-csv-file').click()">CSV 파일 가져오기</button><input id="plus-csv-file" type="file" accept=".csv,text/csv" style="display:none" onchange="readPlusCSVFile(event)"></div><div class="upgrade-label">자동 확인 (5분 간격, 앱이 열린 동안)</div><label class="upgrade-help"><input type="checkbox" id="plus-auto" ${plusSettings.auto?'checked':''} onchange="setPlusAuto(this.checked)"> 켜기 · 새로운 행만 자동 반영 (현재 선택 여행에 기록)</label><div class="upgrade-help">권장: 먼저 수동 미리보기로 행과 여행 선택을 확인하세요. 자동 반영은 동일 브라우저에 한해서만 실행되며 다른 장치에서 실행되지 않습니다.</div><div id="plus-sheet-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
+window.setPlusAuto=function(v){plusSettings.auto=v;plusSaveSettings();};
+window.readPlusCSVFile=async function(e){const f=e.target.files?.[0];if(!f)return;showPlusRows(plusMapRows(await f.text()));};
+window.fetchPlusSheet=async function(background=false){const url=background?plusSettings.sheetUrl:document.getElementById('plus-sheet-url')?.value.trim();if(!url)return;if(!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(url)||!/output=csv/.test(url))return !background&&alert('Google Sheets에서 웹에 게시한 CSV URL을 입력하세요.');plusSettings.sheetUrl=url;plusSaveSettings();try{const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);const rows=plusMapRows(await res.text());if(background&&plusSettings.auto)applyPlusRows(rows,true);else showPlusRows(rows);}catch(e){if(!background)alert('시트를 불러오지 못했습니다. 게시 설정 / CORS / 네트워크를 확인하세요: '+e.message);}};
+function showPlusRows(rows){plusSheetRows=rows;const out=document.getElementById('plus-sheet-output');if(!out)return;out.innerHTML=`<div class="upgrade-label">가져올 데이터 미리보기 (${rows.length}행)</div><div class="upgrade-preview">${rows.slice(0,30).map(r=>plusEsc(`${r.date} · ${r.time} · ${r.place} · ${r.amount||'-'} ${r.currency}`)).join('\n')}</div><div class="upgrade-label">저장할 여행 선택</div><select class="upgrade-input" id="plus-import-trip">${DB.trips.map(t=>`<option value="${plusEsc(t.id)}" ${t.id===CTI?'selected':''}>${plusEsc(t.name)}</option>`).join('')}</select><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="applyPlusRows()">중복 제외하고 적용</button></div><p class="upgrade-help">기존 장소나 지출은 삭제하지 않습니다. 같은 CSV 행(ID가 있으면 ID 기준)은 다시 추가하지 않습니다.</p>`;}
+function plusSafeToWrite(){if(isFirebaseConfigured()&&!window.firebaseLoaded){alert('Firebase 초기 동기화가 아직 완료되지 않았습니다. 인터넷 연결을 확인하고 다시 시도해주세요.');return false;}return true;}
+window.applyPlusRows=function(rows=plusSheetRows,background=false){if(!plusSafeToWrite())return;const tid=background?(plusSettings.targetTrip||CTI):document.getElementById('plus-import-trip')?.value;const t=DB.trips.find(t=>t.id===tid);if(!t){if(!background)alert('여행을 선택해주세요.');return;}if(!background){plusSettings.targetTrip=tid;plusSaveSettings();}let added=0,expenseCount=0,skip=0;t.dates=t.dates||[];t.stops=t.stops||{};DB.expenses=DB.expenses||[];
+for(const r of rows){const date=plusNormalizeDate(r.date);if(!date){skip++;continue;}if(r.trip&&r.trip!==t.name){skip++;continue;}const kind=(r.type||'').toLowerCase();const isExpense=kind==='expense'||kind==='지출'||(!kind&&r.amount&&!r.time);const key=String(r.id||[date,r.time,r.place,r.amount,r.currency,kind].join('|')).trim();const external='sheet:'+tid+':'+key;
+if(isExpense){if(DB.expenses.some(x=>x.externalKey===external)){skip++;continue;}const amount=Number(String(r.amount).replace(/,/g,''));if(!Number.isFinite(amount)||amount<0){skip++;continue;}DB.expenses.push({id:uid(),externalKey:external,tripId:tid,dateKey:date,dateLabel:date,name:r.place,amount,currency:(r.currency||'KRW').toUpperCase(),payer:'me',shareType:'split',settled:false,method:'card',cat:DB.categories?.[0]?.id||'c1',note:r.note||''});expenseCount++;continue;}
+if(!t.dates.some(d=>d.key===date))t.dates.push({key:date,label:date.slice(5)});t.stops[date]=t.stops[date]||[];if(t.stops[date].some(x=>x.externalKey===external)){skip++;continue;}t.stops[date].push({id:uid(),externalKey:external,name:r.place,time:r.time||'',icon:'📍',cat:r.category||'기타',from:'',transport:'',duration:'',todo:[],buy:[],eat:[],note:r.note||''});added++;}
+if(added||expenseCount){save();renderAfterCloudSync();}if(!background)alert(`가져오기 완료: 장소 ${added}개, 지출 ${expenseCount}개 추가 / ${skip}개 건너뜀.`);};
+setInterval(()=>{if(plusSettings.auto&&plusSettings.sheetUrl&&cloudReady&&window.firebaseLoaded&&plusSettings.targetTrip){fetchPlusSheet(true);}},300000);
+// Memo converter: rules-based offline draft. This is NOT an LLM; optionally paste JSON prepared by an AI.
+window.openSmartMemo=function(){let t=plusGetTrip();plusShow(`<p class="upgrade-help">메모에서 날짜·시간·장소를 추출하여 일정을 만듭니다. <b>이 기본 기능은 기기 내 규칙 기반 분석</b>이며 AI 서버로 텍스트를 전송하지 않습니다. 더 복잡한 문장은 아래 AI 프롬프트를 복사해 ChatGPT에서 JSON으로 변환한 뒤 붙여넣을 수 있습니다.</p><div class="upgrade-label">여행 선택</div><select class="upgrade-input" id="plus-note-trip">${DB.trips.map(x=>`<option value="${plusEsc(x.id)}" ${x.id===t?.id?'selected':''}>${plusEsc(x.name)}</option>`).join('')}</select><div class="upgrade-label">메모 입력 (예: 2026-11-28 09:00 신주쿠역 | 기차표 구매)</div><textarea class="upgrade-input" id="plus-memo" style="height:140px" placeholder="2026-11-28 09:00 신주쿠역 | 교통패스 구입\n2026-11-28 13:00 시부야 | 점심"></textarea><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="parseSmartMemo()">메모 일정으로 정리</button><button class="btn btn-subtle" onclick="copySmartPrompt()">AI용 프롬프트 복사</button></div><div class="upgrade-label">AI가 생성한 JSON을 붙여넣는 칸 (선택)</div><textarea class="upgrade-input" id="plus-ai-json" style="height:75px" placeholder='[{"date":"2026-11-28","time":"09:00","place":"신주쿠역","note":""}]'></textarea><button class="btn btn-subtle btn-sm" onclick="parseAIJson()">AI JSON 미리보기</button><div id="plus-memo-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
+window.copySmartPrompt=function(){const p='다음 여행 메모를 JSON 배열로 정리해줘. 각 원소는 date(YYYY-MM-DD), time(HH:MM 또는 빈 문자열), place(장소 이름), note(설명) 필드만 포함해. 없는 날짜/장소를 지어내지 말고 누락된 항목은 제외해. 코드펜스 없이 JSON 배열만 출력해.\n\n'+document.getElementById('plus-memo').value;navigator.clipboard.writeText(p).then(()=>alert('프롬프트 복사 완료')).catch(()=>alert('클립보드 권한이 없어 복사하지 못했습니다.'));};
+window.parseSmartMemo=function(){const value=document.getElementById('plus-memo').value;let date='';plusNoteRows=value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/(?:^|\s)(\d{4}[-./]\d{1,2}[-./]\d{1,2})(?=\s|$)/);if(m){date=plusNormalizeDate(m[1]);l=l.replace(m[0],' ').trim();}const tm=l.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/);let time='';if(tm){time=tm[1].padStart(2,'0')+':'+tm[2];l=l.replace(tm[0],' ').trim();}const [place,...rest]=l.split(/\s*[|｜] *|\s+[-–—]\s+/);return {date,time,place:(place||'').trim().replace(/^[-•*\d.) ]+/,''),note:rest.join(' / ').trim()};}).filter(x=>x.date&&x.place);plusRenderMemo();};
+window.parseAIJson=function(){try{let v=document.getElementById('plus-ai-json').value.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();const a=JSON.parse(v);if(!Array.isArray(a))throw Error('JSON 배열이 필요합니다.');plusNoteRows=a.map(r=>({date:plusNormalizeDate(r.date),time:String(r.time||''),place:String(r.place||'').trim(),note:String(r.note||'')})).filter(r=>r.date&&r.place);plusRenderMemo();}catch(e){alert('JSON 형식 오류: '+e.message);}};
+function plusRenderMemo(){const out=document.getElementById('plus-memo-output');out.innerHTML=`<div class="upgrade-label">일정 미리보기 (${plusNoteRows.length}건)</div><div class="upgrade-preview">${plusNoteRows.map(x=>plusEsc(`${x.date} ${x.time} ${x.place} ${x.note}`)).join('\n')}</div><button class="btn btn-primary btn-sm" onclick="applySmartMemo()">이 일정 추가하기</button>`;}
+window.applySmartMemo=function(){if(!plusSafeToWrite())return;const id=document.getElementById('plus-note-trip')?.value,t=DB.trips.find(x=>x.id===id);if(!t)return;let count=0;t.dates=t.dates||[];t.stops=t.stops||{};for(let r of plusNoteRows){if(!t.dates.some(d=>d.key===r.date))t.dates.push({key:r.date,label:r.date.slice(5)});t.stops[r.date]=t.stops[r.date]||[];const key='memo:'+r.date+':'+r.time+':'+r.place;if(t.stops[r.date].some(s=>s.externalKey===key))continue;t.stops[r.date].push({id:uid(),externalKey:key,name:r.place,time:r.time,icon:'📍',cat:'기타',from:'',transport:'',duration:'',todo:[],buy:[],eat:[],note:r.note});count++;}if(count){save();renderAfterCloudSync();}alert(count+'건 추가했습니다. 원래 저장된 내용은 유지됩니다.');};
+// Apply FX on startup only if cache exists. Fetch daily in the foreground.
+updateFXStatus();if(!plusRates||Date.now()-plusRates.ts>24*3600000)refreshExchangeRates(false);
+
+</script>
+
+<style>
+ .upgrade-overlay{position:fixed;inset:0;z-index:1100;background:rgba(30,10,5,.55);display:none;align-items:center;justify-content:center;padding:12px}
+ .upgrade-overlay.show{display:flex}.upgrade-panel{background:var(--cream);border-radius:20px;padding:18px;width:100%;max-width:650px;max-height:94vh;overflow:auto;color:var(--ink)}
+ .upgrade-label{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}.upgrade-input{width:100%;padding:10px;border:1.5px solid var(--subtle);border-radius:10px;background:var(--white);color:var(--ink);font:inherit}
+ .upgrade-map{height:320px;border-radius:12px;background:#f0e8e3;margin-top:10px}.upgrade-buttonrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.upgrade-help{font-size:12px;color:var(--muted);line-height:1.7}.upgrade-preview{max-height:220px;overflow:auto;font-size:12px;background:var(--white);padding:8px;border-radius:8px;border:1px solid var(--subtle);white-space:pre-wrap}
+</style>
+<div class="upgrade-overlay" id="upgrade-overlay"><div class="upgrade-panel">
+ <div class="flex-between"><div class="page-title" style="font-size:23px">Travel Book · Plus</div><button class="btn btn-ghost btn-sm" onclick="closeUpgrade()">✕ 닫기</button></div>
+ <div id="upgrade-content"></div>
+</div></div>
+</body>
+</html>
