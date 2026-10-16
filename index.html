@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.6.6</title>
+<title>Our Travel Book v3.6.7</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -299,9 +299,11 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 .route-review-box textarea:focus{border-color:var(--rose)}
 .route-move-info{background:var(--warm);border:1px solid var(--subtle);border-radius:10px;padding:7px 10px;font-size:12px;color:var(--brown);margin:8px 0 10px;font-weight:600}
 
-/* drag handle */
+/* drag handle: only the handle initiates dragging */
 .route-item.dragging{opacity:.4;border:2px dashed var(--rose);}
 .route-item.drag-over{border-top:3px solid var(--rose);}
+.route-item.drag-over-bottom{border-bottom:3px solid var(--rose);}
+.route-item .drag-handle{display:inline-flex;align-items:center;justify-content:center;min-width:27px;min-height:35px;border-radius:7px;background:var(--warm)}
 .drag-handle{cursor:grab;color:var(--muted);font-size:18px;padding:0 6px;flex-shrink:0;
   touch-action:none;user-select:none;-webkit-user-select:none;line-height:1}
 .drag-handle:active{cursor:grabbing;color:var(--rose)}
@@ -687,7 +689,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.6.6</div>
+    <div class="sec-label">클라우드 저장 · v3.6.7</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -747,7 +749,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
 
   <div class="card" id="upgrade-settings">
     <div class="sec-label">✨ 여행 앱 확장 기능</div>
-    <div class="settings-row"><div><div class="settings-label">지도·메모·환율</div><div class="settings-sub">지도 보기, 메모 일정 변환, 환율</div></div><button class="btn btn-primary btn-sm" onclick="openUpgradeCenter()">열기</button></div>
+    <div class="settings-row"><div><div class="settings-label">지도·환율</div><div class="settings-sub">지도 보기, 환율</div></div><button class="btn btn-primary btn-sm" onclick="openUpgradeCenter()">열기</button></div>
     <div class="settings-row"><div><div class="settings-label">환율 자동 업데이트</div><div class="settings-sub" id="fx-status">기본 환율 사용 중</div></div><button class="btn btn-subtle btn-sm" onclick="refreshExchangeRates(true)">갱신</button></div>
     <div class="settings-row"><div><div class="settings-label">데이터 백업</div><div class="settings-sub">업데이트 전 JSON 백업을 권장합니다.</div></div><button class="btn btn-subtle btn-sm" onclick="exportBackup()">백업</button></div>
   </div>
@@ -2029,12 +2031,11 @@ function renderRoute(trip){
       <button class="btn btn-ghost btn-sm" onclick="shareRoute()">📤 공유</button>
       <button class="btn btn-subtle btn-sm" onclick="openUpgradeMap()">📍 지도 보기</button>
       <button class="btn btn-ghost btn-sm" onclick="openGoogleDay()">🧭 자동 지도 경로</button>
-      <button class="btn btn-ghost btn-sm" onclick="openSmartMemo()">✨ 메모→일정</button>
     </div>`;
     const stops=trip.stops[curDK]||[];
     if(!stops.length){html+=`<div class="empty"><div class="empty-icon">🗺️</div><p>장소를 추가해봐요!<br/>한번에 입력 버튼을 눌러보세요</p></div>`;}
     else{
-      html+=`<div class="route-timeline">`;
+      html+=`<div class="route-bulk-hint" style="margin-bottom:9px">⠿ 손잡이를 잡고 위아래로 끌어 장소 순서를 바꿀 수 있어요. 변경한 순서는 자동 저장됩니다.</div><div class="route-timeline">`;
       stops.forEach((s,i)=>{
         const prevStop=i>0?stops[i-1]:null;
         const autoFrom=s.from||(prevStop?.name||'');
@@ -2055,16 +2056,15 @@ function renderRoute(trip){
           <label>💭 후기 / 평가</label><textarea placeholder="예: 생각보다 좋았음 / 다음엔 오전 방문 추천" onchange="saveRouteReview('${s.id}',this.value)">${s.review||''}</textarea>
         </div>`;
         const totalStops=stops.length;
-        html+=`${i>0?tr:''}<div class="route-item ${isOpen?'open':''}" id="ri-${s.id}" draggable="true"
-          ondragstart="dragStart(event,'${s.id}')"
+        html+=`${i>0?tr:''}<div class="route-item ${isOpen?'open':''}" id="ri-${s.id}"
           ondragover="dragOver(event)"
           ondrop="dragDrop(event,'${s.id}')"
           ondragend="dragEnd()"
           onclick="toggleRoute('${s.id}')">
           <div class="route-dot">${i+1}</div>
           <div class="route-head">
-            <span class="drag-handle" onclick="event.stopPropagation()"
-              ontouchstart="touchDragStart(event,'${s.id}')"
+            <span class="drag-handle" role="button" tabindex="0" aria-label="${s.name} 장소 순서 이동" title="잡고 위아래로 이동" draggable="true" ondragstart="dragStart(event,'${s.id}')" ondragend="dragEnd()" onclick="event.stopPropagation()"
+              ontouchcancel="touchDragCancel(event)" ontouchstart="touchDragStart(event,'${s.id}')"
               ontouchmove="touchDragMove(event)"
               ontouchend="touchDragEnd(event,'${s.id}')">⠿</span>
             <div class="route-main-info">
@@ -2260,6 +2260,7 @@ window.copyMemo=function(id){
 // ── DRAG & DROP for route ──
 let dragSrcId=null;
 window.dragStart=function(e,id){
+  e.stopPropagation();
   dragSrcId=id;
   e.dataTransfer.effectAllowed='move';
   setTimeout(()=>document.getElementById('ri-'+id)?.classList.add('dragging'),0);
@@ -2296,9 +2297,12 @@ window.moveStop=function(id,dir){
 
 // ── Touch drag (mobile) ──
 let touchSrcId=null,touchClone=null,touchOverId=null;
+let touchPointerY=0,touchPointerX=0,touchScrollFrame=null;
 window.touchDragStart=function(e,id){
   e.stopPropagation();
-  touchSrcId=id;
+  if(e.touches.length!==1)return;
+  touchSrcId=id;touchOverId=null;
+  touchPointerY=e.touches[0].clientY;touchPointerX=e.touches[0].clientX;
   const el=document.getElementById('ri-'+id);
   if(!el)return;
   const rect=el.getBoundingClientRect();
@@ -2308,22 +2312,44 @@ window.touchDragStart=function(e,id){
     box-shadow:0 8px 32px rgba(0,0,0,.25);transform:scale(1.02);transition:none`;
   document.body.appendChild(touchClone);
   el.style.opacity='.3';
+  touchScrollFrame=requestAnimationFrame(touchAutoScroll);
 };
+function touchDragTarget(){
+  document.querySelectorAll('.route-item').forEach(el=>el.classList.remove('drag-over'));
+  const under=document.elementFromPoint(touchPointerX,touchPointerY);
+  const ri=under?.closest('.route-item');
+  touchOverId=(ri&&ri.id!=='ri-'+touchSrcId)?ri.id.slice(3):null;
+  if(touchOverId)ri.classList.add('drag-over');
+}
+function touchAutoScroll(){
+  if(!touchClone){touchScrollFrame=null;return;}
+  const edge=Math.min(105,innerHeight*.18);
+  let speed=0;
+  if(touchPointerY<edge)speed=-Math.max(3,Math.min(18,(edge-touchPointerY)*.2));
+  else if(touchPointerY>innerHeight-edge)speed=Math.max(3,Math.min(18,(touchPointerY-(innerHeight-edge))*.2));
+  if(speed){window.scrollBy(0,speed);touchDragTarget();}
+  touchScrollFrame=requestAnimationFrame(touchAutoScroll);
+}
 window.touchDragMove=function(e){
-  if(!touchClone)return;
-  e.preventDefault();
+  if(!touchClone||!e.touches.length)return;
+  e.preventDefault();e.stopPropagation();
   const t=e.touches[0];
+  touchPointerY=t.clientY;touchPointerX=t.clientX;
   touchClone.style.top=(t.clientY-40)+'px';
   touchClone.style.left=(t.clientX-80)+'px';
+  touchDragTarget();
+};
+window.touchDragCancel=function(e){
+  if(touchScrollFrame)cancelAnimationFrame(touchScrollFrame);
+  touchScrollFrame=null;
+  if(touchClone){touchClone.remove();touchClone=null;}
+  if(touchSrcId)document.getElementById('ri-'+touchSrcId)?.style.removeProperty('opacity');
   document.querySelectorAll('.route-item').forEach(el=>el.classList.remove('drag-over'));
-  const under=document.elementFromPoint(t.clientX,t.clientY);
-  const ri=under?.closest('.route-item');
-  if(ri&&ri.id!=='ri-'+touchSrcId){
-    ri.classList.add('drag-over');
-    touchOverId=ri.id.replace('ri-','');
-  }else{touchOverId=null;}
+  touchSrcId=null;touchOverId=null;
 };
 window.touchDragEnd=function(e,id){
+  if(touchScrollFrame)cancelAnimationFrame(touchScrollFrame);
+  touchScrollFrame=null;
   if(touchClone){touchClone.remove();touchClone=null;}
   document.getElementById('ri-'+id)?.style.removeProperty('opacity');
   document.querySelectorAll('.route-item').forEach(el=>el.classList.remove('drag-over'));
@@ -3415,13 +3441,13 @@ const PLUS_FX_KEY='tb_plus_rates_v1';
 let plusSettings=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_CFG_KEY)||'{}')}catch{return {}}})();
 let plusRates=(()=>{try{return JSON.parse(localStorage.getItem(PLUS_FX_KEY)||'null')}catch{return null}})();
 delete plusSettings.sheetUrl;delete plusSettings.auto;delete plusSettings.targetTrip;
-let plusMap=null,plusCandidates=[],plusNoteRows=[];
+let plusMap=null,plusCandidates=[];
 const plusEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plusGetTrip=()=>DB.trips.find(t=>t.id===CTI);
 function plusSaveSettings(){delete plusSettings.sheetUrl;delete plusSettings.auto;delete plusSettings.targetTrip;localStorage.setItem(PLUS_CFG_KEY,JSON.stringify(plusSettings));}
 function plusShow(html){document.getElementById('upgrade-content').innerHTML=html;document.getElementById('upgrade-overlay').classList.add('show');}
 window.closeUpgrade=function(){document.getElementById('upgrade-overlay').classList.remove('show');if(plusMap){plusMap.remove();plusMap=null;}};
-window.openUpgradeCenter=function(){plusShow(`<p class="upgrade-help">기존 여행·지출 데이터는 그대로 유지됩니다. 새 데이터는 검토 후 추가하세요.</p><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="openUpgradeMap()">🗺️ 여행 지도</button><button class="btn btn-primary" onclick="openSmartMemo()">✨ 메모 정리</button><button class="btn btn-primary" onclick="openFXPanel()">💱 환율</button></div><p class="upgrade-help">현재 여행이 선택돼 있으면 해당 여행의 일정을 사용합니다. 데이터 저장은 기존 Firebase 구조를 따릅니다.</p>`);};
+window.openUpgradeCenter=function(){plusShow(`<p class="upgrade-help">기존 여행·지출 데이터는 그대로 유지됩니다. 새 데이터는 검토 후 추가하세요.</p><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="openUpgradeMap()">🗺️ 여행 지도</button><button class="btn btn-primary" onclick="openFXPanel()">💱 환율</button></div><p class="upgrade-help">현재 여행이 선택돼 있으면 해당 여행의 일정을 사용합니다. 데이터 저장은 기존 Firebase 구조를 따릅니다.</p>`);};
 function plusQuery(stop){let trip=plusGetTrip();return [stop?.name,trip?.country?.replace(/[\u{1F1E6}-\u{1F1FF}]/gu,'')].filter(Boolean).join(' ').trim();}
 function plusStop(id){const trip=plusGetTrip();return trip&&Object.values(trip.stops||{}).flat().find(s=>s.id===id);}
 // V3.3 country-aware map routing. Old data stays untouched until an explicit edit.
@@ -3600,13 +3626,6 @@ if(plusRates&&plusRates.krw&&plusRates.aed){Object.assign(R2K,plusRates.krw);Obj
 // Date normalization retained for memo-to-itinerary conversion.
 function plusNormalizeDate(s){s=String(s||'').trim();if(/^\d{4}-\d\d-\d\d$/.test(s))return s;const m=s.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})\.?$/);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:'';}
 function plusSafeToWrite(){if(!cloudReady||!window.firebaseLoaded){alert('클라우드 연결을 확인해 주세요.');return false;}return true;}
-// Memo converter: rules-based offline draft. This is NOT an LLM; optionally paste JSON prepared by an AI.
-window.openSmartMemo=function(){let t=plusGetTrip();plusShow(`<p class="upgrade-help">메모에서 날짜·시간·장소를 추출하여 일정을 만듭니다. <b>이 기본 기능은 기기 내 규칙 기반 분석</b>이며 AI 서버로 텍스트를 전송하지 않습니다. 더 복잡한 문장은 아래 AI 프롬프트를 복사해 ChatGPT에서 JSON으로 변환한 뒤 붙여넣을 수 있습니다.</p><div class="upgrade-label">여행 선택</div><select class="upgrade-input" id="plus-note-trip">${DB.trips.filter(x=>!x._archived).map(x=>`<option value="${plusEsc(x.id)}" ${x.id===t?.id?'selected':''}>${plusEsc(x.name)}</option>`).join('')}</select><div class="upgrade-label">메모 입력 (예: 2026-11-28 09:00 신주쿠역 | 기차표 구매)</div><textarea class="upgrade-input" id="plus-memo" style="height:140px" placeholder="2026-11-28 09:00 신주쿠역 | 교통패스 구입\n2026-11-28 13:00 시부야 | 점심"></textarea><div class="upgrade-buttonrow"><button class="btn btn-primary" onclick="parseSmartMemo()">메모 일정으로 정리</button><button class="btn btn-subtle" onclick="copySmartPrompt()">AI용 프롬프트 복사</button></div><div class="upgrade-label">AI가 생성한 JSON을 붙여넣는 칸 (선택)</div><textarea class="upgrade-input" id="plus-ai-json" style="height:75px" placeholder='[{"date":"2026-11-28","time":"09:00","place":"신주쿠역","note":""}]'></textarea><button class="btn btn-subtle btn-sm" onclick="parseAIJson()">AI JSON 미리보기</button><div id="plus-memo-output"></div><button class="btn btn-ghost btn-sm" onclick="openUpgradeCenter()">뒤로</button>`);};
-window.copySmartPrompt=function(){const p='다음 여행 메모를 JSON 배열로 정리해줘. 각 원소는 date(YYYY-MM-DD), time(HH:MM 또는 빈 문자열), place(장소 이름), note(설명) 필드만 포함해. 없는 날짜/장소를 지어내지 말고 누락된 항목은 제외해. 코드펜스 없이 JSON 배열만 출력해.\n\n'+document.getElementById('plus-memo').value;navigator.clipboard.writeText(p).then(()=>alert('프롬프트 복사 완료')).catch(()=>alert('클립보드 권한이 없어 복사하지 못했습니다.'));};
-window.parseSmartMemo=function(){const value=document.getElementById('plus-memo').value;let date='';plusNoteRows=value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=l.match(/(?:^|\s)(\d{4}[-./]\d{1,2}[-./]\d{1,2})(?=\s|$)/);if(m){date=plusNormalizeDate(m[1]);l=l.replace(m[0],' ').trim();}const tm=l.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)(?=\s|$)/);let time='';if(tm){time=tm[1].padStart(2,'0')+':'+tm[2];l=l.replace(tm[0],' ').trim();}const [place,...rest]=l.split(/\s*[|｜] *|\s+[-–—]\s+/);return {date,time,place:(place||'').trim().replace(/^[-•*\d.) ]+/,''),note:rest.join(' / ').trim()};}).filter(x=>x.date&&x.place);plusRenderMemo();};
-window.parseAIJson=function(){try{let v=document.getElementById('plus-ai-json').value.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();const a=JSON.parse(v);if(!Array.isArray(a))throw Error('JSON 배열이 필요합니다.');plusNoteRows=a.map(r=>({date:plusNormalizeDate(r.date),time:String(r.time||''),place:String(r.place||'').trim(),note:String(r.note||'')})).filter(r=>r.date&&r.place);plusRenderMemo();}catch(e){alert('JSON 형식 오류: '+e.message);}};
-function plusRenderMemo(){const out=document.getElementById('plus-memo-output');out.innerHTML=`<div class="upgrade-label">일정 미리보기 (${plusNoteRows.length}건)</div><div class="upgrade-preview">${plusNoteRows.map(x=>plusEsc(`${x.date} ${x.time} ${x.place} ${x.note}`)).join('\n')}</div><button class="btn btn-primary btn-sm" onclick="applySmartMemo()">이 일정 추가하기</button>`;}
-window.applySmartMemo=function(){if(!plusSafeToWrite())return;const id=document.getElementById('plus-note-trip')?.value,t=DB.trips.find(x=>x.id===id);if(!t)return;let count=0;t.dates=t.dates||[];t.stops=t.stops||{};for(let r of plusNoteRows){if(!t.dates.some(d=>d.key===r.date))t.dates.push({key:r.date,label:r.date.slice(5)});t.stops[r.date]=t.stops[r.date]||[];const key='memo:'+r.date+':'+r.time+':'+r.place;if(t.stops[r.date].some(s=>s.externalKey===key))continue;t.stops[r.date].push({id:uid(),externalKey:key,name:r.place,time:r.time,icon:'📍',cat:'기타',from:'',transport:'',duration:'',todo:[],buy:[],eat:[],note:r.note});count++;}if(count){save();renderAfterCloudSync();}alert(count+'건 추가했습니다. 원래 저장된 내용은 유지됩니다.');};
 // Apply FX on startup only if cache exists. Fetch daily in the foreground.
 updateFXStatus();if(!plusRates||Date.now()-plusRates.ts>24*3600000)refreshExchangeRates(false);
 
