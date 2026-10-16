@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="Our Trip 💕"/>
 <meta name="theme-color" content="#fff8f2"/>
-<title>Our Travel Book v3.6.7</title>
+<title>Our Travel Book v3.6.8</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════
@@ -689,7 +689,7 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;height:3px;z-index:9
   </div>
 
   <div class="card">
-    <div class="sec-label">클라우드 저장 · v3.6.7</div>
+    <div class="sec-label">클라우드 저장 · v3.6.8</div>
     <div class="settings-row">
       <div><div class="settings-label">Firebase 상태</div><div class="settings-sub" id="cloud-sync-status">연결 확인 중…</div></div>
       <button class="btn btn-ghost btn-sm" onclick="tbSignOut()">로그아웃</button>
@@ -2030,7 +2030,7 @@ function renderRoute(trip){
       <button class="btn btn-subtle btn-sm" onclick="openStopModal()">＋ 장소 추가</button>
       <button class="btn btn-ghost btn-sm" onclick="shareRoute()">📤 공유</button>
       <button class="btn btn-subtle btn-sm" onclick="openUpgradeMap()">📍 지도 보기</button>
-      <button class="btn btn-ghost btn-sm" onclick="openGoogleDay()">🧭 자동 지도 경로</button>
+      <button class="btn btn-ghost btn-sm" onclick="openGoogleDay()">🧭 전체 동선 보기</button>
     </div>`;
     const stops=trip.stops[curDK]||[];
     if(!stops.length){html+=`<div class="empty"><div class="empty-icon">🗺️</div><p>장소를 추가해봐요!<br/>한번에 입력 버튼을 눌러보세요</p></div>`;}
@@ -3502,10 +3502,43 @@ window.setPlusStopCountry=function(id,code){const s=plusStop(id);if(!s||!plusSaf
 window.setPlusStopProvider=function(id,provider){const s=plusStop(id);if(!s||!plusSafeToWrite())return;if(provider!=='auto'&&!plusProviderNames[provider])return;if(provider==='auto')delete s.mapProvider;else s.mapProvider=provider;save();drawUpgradeMap();renderTripDetail(plusGetTrip());};
 window.editPlusMapLink=function(id){const st=plusStop(id);if(!st)return;const provider=plusStopProvider(st),old=st.mapLinks?.[provider]||'';const value=prompt(plusProviderNames[provider]+'에서 장소 공유 → 링크 복사 후 붙여넣으세요.\n빈칸으로 저장하면 기존 링크를 해제합니다.',old);if(value===null)return;const url=value.trim();if(url){let parsed;try{parsed=new URL(url);}catch{return alert('유효한 HTTPS 주소를 붙여넣어 주세요.');}const domain=parsed.hostname.toLowerCase();const allowed={google:['google.com','maps.google.com','goo.gl','maps.app.goo.gl'],naver:['naver.com','map.naver.com','m.place.naver.com','place.naver.com','naver.me'],amap:['amap.com','uri.amap.com','gaode.com']}[provider];if(parsed.protocol!=='https:'||!allowed.some(d=>domain===d||domain.endsWith('.'+d)))return alert('선택한 지도 서비스의 HTTPS 공유 링크만 저장할 수 있습니다.');}
  if(!plusSafeToWrite())return;st.mapLinks=st.mapLinks||{};if(url)st.mapLinks[provider]=url;else delete st.mapLinks[provider];save();drawUpgradeMap();renderTripDetail(plusGetTrip());alert(url?'지도 공유 링크를 저장했습니다.':'기존 공유 링크를 해제했습니다.');};
-window.openDayRoute=function(){const t=plusGetTrip();if(!t)return;const date=document.getElementById('plus-map-date')?.value||curDK;const items=t.stops?.[date]||[];if(!items.length)return alert('장소가 없습니다.');const groups=[];for(const st of items){const provider=plusStopProvider(st,date);let last=groups[groups.length-1];if(!last||last.provider!==provider)groups.push(last={provider,stops:[]});last.stops.push(st);}
- if(groups.length>1){alert('이 날짜에는 국가/지도 서비스가 다른 장소가 포함되어 있습니다. 첫 장소를 열고, 각 장소의 지도 버튼으로 이동해 주세요.');window.open(plusUrlForStop(items[0]),'_blank','noopener,noreferrer');return;}
- const provider=groups[0].provider;if(provider!=='google'){alert(plusProviderNames[provider]+'는 여러 경유지 동시 연결이 제한되어 첫 장소를 엽니다.');window.open(plusUrlForStop(items[0],provider),'_blank','noopener,noreferrer');return;}
- const a=items.map(x=>x.mapAddress?plusQuery(x):(x.lat!==undefined&&x.lng!==undefined?x.lat+','+x.lng:plusQuery(x)));if(a.length===1)return window.open(plusUrlForStop(items[0],'google'),'_blank','noopener,noreferrer');const chosen=a.slice(0,5);const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(chosen[0])+'&destination='+encodeURIComponent(chosen[chosen.length-1])+(chosen.length>2?'&waypoints='+encodeURIComponent(chosen.slice(1,-1).join('|')):'');window.open(url,'_blank','noopener,noreferrer');if(a.length>5)alert('첫 5개 장소만 경로에 포함했습니다.');};
+// Google directions is used for full-day routes. Individual place links keep their country-specific provider.
+function travelGoogleRouteUrl(stops){
+ const points=stops.map(st=>{
+   if(st.mapAddress)return plusQuery(st);
+   const lat=Number(st.lat),lng=Number(st.lng);
+   if(st.lat!==undefined&&st.lng!==undefined&&Number.isFinite(lat)&&Number.isFinite(lng))return lat+','+lng;
+   return plusQuery(st);
+ });
+ if(points.length===1)return plusUrlForStop(stops[0],'google');
+ return 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(points[0])+'&destination='+encodeURIComponent(points.at(-1))+(points.length>2?'&waypoints='+encodeURIComponent(points.slice(1,-1).join('|')):'');
+}
+function travelRouteGroups(items){
+ const result=[];
+ for(let from=0;from<items.length;from+=4){
+   const chunk=items.slice(from,Math.min(from+5,items.length));
+   if(!chunk.length)break;
+   result.push({start:from+1,end:from+chunk.length,items:chunk,url:travelGoogleRouteUrl(chunk)});
+   if(from+chunk.length>=items.length)break;
+ }
+ return result;
+}
+window.openDayRoute=function(){
+ const t=plusGetTrip();if(!t)return;
+ const date=document.getElementById('plus-map-date')?.value||curDK;
+ const items=(t.stops?.[date]||[]).filter(x=>x&&!x._archived);
+ if(!items.length)return alert('선택한 날짜에 장소가 없습니다.');
+ const dayCode=plusDateCountry(t,date);
+ const isChina=dayCode==='CN'||(items.every(s=>plusCountryForStop(s,t,date)==='CN'));
+ if(isChina){alert('중국 지역은 Google Maps 경로가 부정확할 수 있어 고덕지도 장소 검색을 사용합니다.');window.open(plusUrlForStop(items[0],'amap'),'_blank','noopener,noreferrer');return;}
+ const chunks=travelRouteGroups(items);
+ if(chunks.length===1){window.open(chunks[0].url,'_blank','noopener,noreferrer');return;}
+ // Multiple links are rendered for deliberate individual taps to avoid popup blockers and mobile waypoint limits.
+ const html='<p class="upgrade-help">이 날짜의 '+items.length+'개 장소를 순서대로 연결합니다. 모바일 경유지 제한 때문에 연속된 구간으로 나눴으며, 각 구간의 마지막 장소가 다음 구간의 출발지가 됩니다.</p>'+
+ chunks.map((part,i)=>'<div class="card" style="padding:12px;margin:8px 0"><b>구간 '+(i+1)+' · '+part.start+'–'+part.end+'번 장소</b><div style="font-size:12px;color:var(--muted);margin:7px 0;line-height:1.6">'+part.items.map(x=>plusEsc(x.name)).join(' → ')+'</div><a class="btn btn-primary btn-sm" target="_blank" rel="noopener noreferrer" href="'+part.url.replace(/&/g,'&amp;')+'">Google Maps에서 열기 ↗</a></div>').join('')+
+ '<button class="btn btn-subtle btn-sm" onclick="openUpgradeMap()">← 장소 목록으로</button>';
+ plusShow(html);
+};
 window.openGoogleDay=window.openDayRoute;
 window.openUpgradeMap=function(){
  const t=plusGetTrip();
@@ -3514,13 +3547,13 @@ window.openUpgradeMap=function(){
  const dates=(t.dates||[]).map(d=>`<option value="${plusEsc(d.key)}" ${d.key===curDK?'selected':''}>${plusEsc(d.label||d.key)}</option>`).join('');
  const selected=plusSettings.providers?.[t.id]||'auto';
  const providerOptions=[['auto','자동 ('+plusProviderNames[plusAutoProvider(t)]+')'],['naver','네이버 지도'],['amap','고덕지도 (高德地图)'],['google','구글 지도']].map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${label}</option>`).join('');
- plusShow(`<p class="upgrade-help">장소 국가 → 날짜 국가 → 여행 국가 순으로 지도를 선택합니다. 장소별 지도 검색은 아래 버튼으로 바로 열 수 있습니다.</p>
+ plusShow(`<p class="upgrade-help">개별 장소는 국가별 지도(한국: 네이버, 중국: 고덕, 그 외: 구글)로 열립니다. 전체 동선은 Google Maps로 연결합니다. 저장된 지도 검색용 주소와 공유 링크는 두 사람의 Firebase 여행 기록에 유지됩니다.</p>
  <div class="upgrade-label">여행 기본 지도 (국가 정보가 없는 장소용)</div>
  <select class="upgrade-input" onchange="setTripMapProvider(this.value)">${providerOptions}</select>
  <div class="upgrade-label">날짜</div><select class="upgrade-input" id="plus-map-date" onchange="drawUpgradeMap()">${dates}</select>
  <div id="plus-day-country"></div>
- <div class="upgrade-buttonrow"><button class="btn btn-subtle btn-sm" id="plus-map-preview-btn" onclick="toggleUpgradeMapPreview()">🎨 동선 미리보기</button><button class="btn btn-ghost btn-sm" onclick="openDayRoute()">🧭 이 날짜 동선 열기</button></div>
- <div id="plus-map-preview-wrap" style="display:none"><div id="plus-map" class="upgrade-map"></div><div id="plus-map-status" class="upgrade-help"></div><div id="plus-map-legend" class="upgrade-route-legend"></div></div>
+ <div class="upgrade-buttonrow"><button class="btn btn-primary btn-sm" onclick="openDayRoute()">🧭 Google Maps 전체 동선 보기</button></div>
+
  <div id="plus-map-stops"></div>
  <div class="upgrade-buttonrow"><button class="btn btn-subtle btn-sm" onclick="openUpgradeCenter()">기능 메뉴</button></div>`);
  setTimeout(drawUpgradeMap,50);
@@ -3572,10 +3605,10 @@ window.toggleUpgradeMapPreview=async function(){
  }
  setTimeout(()=>plusMap&&plusMap.invalidateSize(),100);
 };
-window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value,el=document.getElementById('plus-map');if(!t||!el)return;const arr=t.stops?.[date]||[];
+window.drawUpgradeMap=function(){const t=plusGetTrip(),date=document.getElementById('plus-map-date')?.value,el=document.getElementById('plus-map');if(!t)return;const arr=t.stops?.[date]||[];
  const dayCode=t.dateCountries?.[date]||'';document.getElementById('plus-day-country').innerHTML=`<div class="upgrade-label">이 날짜의 국가 ${!dayCode?'(자동: '+plusEsc(plusDateCountry(t,date)||'미지정')+')':''}</div>${plusCountrySelect(dayCode,'setPlusDayCountry')}`;
  document.getElementById('plus-map-stops').innerHTML=arr.map((s,i)=>{const provider=plusStopProvider(s,date);const label=plusProviderNames[provider];const country=plusCountryForStop(s,t,date)||'미지정';const providerOptions=[['auto','자동 ('+label+')'],['naver','네이버'],['amap','고덕'],['google','구글']].map(([k,v])=>`<option value="${k}" ${(s.mapProvider||'auto')===k?'selected':''}>${v}</option>`).join('');return `<div class="settings-row" style="display:block"><div style="font-size:12px;margin-bottom:4px"><b>${i+1}. ${plusEsc(s.time||'')} ${plusEsc(s.name)}</b> <span style="color:var(--muted)">(${plusEsc(country)})</span></div>${s.mapAddress?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">📍 지도 검색: ${plusEsc(s.mapAddress)}</div>`:''}<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${plusCountrySelect(s.countryCode||'',`setPlusStopCountry('${plusEsc(s.id)}',this.value)`)}<select class="upgrade-input" style="max-width:120px;padding:5px;font-size:12px" onchange="setPlusStopProvider('${plusEsc(s.id)}',this.value)">${providerOptions}</select><button class="btn btn-primary btn-sm" onclick="openStopMap('auto','${plusEsc(s.id)}')">${plusEsc(label)}</button><button class="btn btn-subtle btn-sm" onclick="editPlusMapLink('${plusEsc(s.id)}')">${s.mapLinks?.[provider]?'링크 수정':'링크 저장'}</button><button class="btn btn-subtle btn-sm" onclick="geocodePlusStop('${plusEsc(s.id)}')">${s.lat!==undefined?'핀 변경':'핀 찾기'}</button></div><div id="plus-geocode-${plusEsc(s.id)}" class="plus-geocode-inline"></div></div>`;}).join('')||'<p class="upgrade-help">선택한 날짜에 장소가 없습니다.</p>';
- if(plusMap){plusMap.remove();plusMap=null;}if(!plusMapPreviewOpen)return;const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
+ if(plusMap){plusMap.remove();plusMap=null;}if(!plusMapPreviewOpen||!el)return;const status=document.getElementById('plus-map-status');if(!window.L){el.textContent='지도 라이브러리를 불러올 수 없습니다. 아래 지도 버튼은 사용할 수 있습니다.';return;}
  plusMap=L.map(el).setView([36,128],4);
  // Key-free OpenStreetMap tiles. No API key is required.
  const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(plusMap);
